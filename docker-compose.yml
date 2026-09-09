@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      CV_DATA_DIR: /data
+      STATIC_DIR: /app
+      AI_DISABLED: "1"
+    volumes:
+      # Database, photos and logs survive container restarts.
+      - appdata:/data
+
+volumes:
+  appdata:

@@ -3968,7 +3968,8 @@ function wizPromptReset(){
 }
 
 /* ========= CV DATABASE API ========= */
-var CV_API_URL = 'https://calculator.betreuung24.de';
+// Same-origin in every environment: production, local Docker and Railway.
+var CV_API_URL = window.location.origin;
 var CV_API_KEY = '__API_KEY_PLACEHOLDER__';
 
 function cvFetch(url, options){

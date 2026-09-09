@@ -25,8 +25,11 @@ const path       = require('path');
 const fs         = require('fs');
 
 const app     = express();
-const PORT    = 3001;
-const BASE    = path.join(__dirname, 'cv-data');
+const PORT    = process.env.PORT || 3001;
+// Bind address. Production keeps 127.0.0.1 (Nginx connects locally);
+// containers must bind 0.0.0.0 or the app is unreachable from outside.
+const HOST    = process.env.HOST || '127.0.0.1';
+const BASE    = process.env.CV_DATA_DIR || path.join(__dirname, 'cv-data');
 const DB_PATH = path.join(BASE, 'cv.db');
 const PHO_DIR = path.join(BASE, 'photos');
 const BAK_DIR = path.join(BASE, 'backups');
@@ -173,7 +176,18 @@ function logRequest(req, res, next) {
 }
 
 // --- Middleware ---
-app.set('trust proxy', 1); // Nginx reverse proxy — echte Client-IP aus X-Forwarded-For lesen
+app.set('trust proxy', 1);
+
+// AI generation needs a local Ollama instance. Environments without one
+// (local Docker, Railway test) set AI_DISABLED=1 so the frontend gets a
+// clear error instead of hanging until the 2 minute timeout.
+app.use('/ai/generate', (req, res, next) => {
+  if (process.env.AI_DISABLED === '1') {
+    return res.status(503).json({ error: 'ai_unavailable',
+      message: 'Generator AI nie jest dostepny w tym srodowisku.' });
+  }
+  next();
+}); // Nginx reverse proxy — echte Client-IP aus X-Forwarded-For lesen
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
 app.use(logRequest);
@@ -708,12 +722,32 @@ cron.schedule('0 2 * * *', () => {
 });
 
 // ============================================================
+// STATIC FILES (fallback)
+// ============================================================
+// Serves index.html, fonts and images when no reverse proxy is in front
+// (local Docker, Railway). On production Nginx serves these first, so this
+// middleware is never reached there. Must stay AFTER every API route.
+const STATIC_DIR = process.env.STATIC_DIR || __dirname;
+
+// index.html ships with __API_KEY_PLACEHOLDER__ instead of a committed key.
+// It is substituted from the environment at request time, so the key exists
+// only in env vars. Must be registered before express.static below.
+app.get(['/', '/index.html'], (req, res) => {
+  fs.readFile(path.join(STATIC_DIR, 'index.html'), 'utf8', (err, html) => {
+    if (err) return res.status(500).send('index.html not found');
+    res.type('html').send(html.split('__API_KEY_PLACEHOLDER__').join(CONFIG.API_KEY));
+  });
+});
+
+app.use(express.static(STATIC_DIR));
+
+// ============================================================
 // START
 // ============================================================
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, HOST, () => {
   const { total } = stmt.cvCount.get();
   const users = stmt.usersList.all().length;
-  console.log(`[${new Date().toISOString()}] CV API v4 running on port ${PORT}`);
+  console.log(`[${new Date().toISOString()}] CV API v4 running on ${HOST}:${PORT}`);
   console.log(`CVs: ${total} | Users: ${users} | DB: ${DB_PATH}`);
   console.log(`Security: JWT 12h | Rate limit: 5 logins/15min | Lockout after ${CONFIG.MAX_LOGIN_ATTEMPTS} attempts`);
 });
