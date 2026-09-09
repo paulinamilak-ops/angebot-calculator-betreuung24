@@ -1,10 +1,16 @@
 /**
- * Betreuung 24 — CV API Server (production v4)
- * SQLite + JWT (12h) + Rate Limiting + Security Log + Account Lockout
- * Office 365 SMTP + Backup + Photo Storage + Request Logging + Auto-cleanup
+ * Betreuung 24 — CV API Server (v5)
+ * PostgreSQL + JWT (12h) + Rate Limiting + Security Log + Account Lockout
+ * Office 365 SMTP + Photo Storage + Request Logging + Auto-cleanup
+ *
+ * Roles: admin (everything), user (Angebot + CV), franchise (franchise
+ * calculator only — no access to CV, users, security log or AI).
+ *
+ * Requires DATABASE_URL. The schema is applied from migrations/ on every
+ * start; files already recorded in schema_migrations are skipped.
  *
  * Installation:
- *   npm install express cors better-sqlite3 node-cron helmet jsonwebtoken bcrypt nodemailer express-rate-limit
+ *   npm install
  *   node server.js
  *
  * First run — create admin account:
@@ -14,7 +20,7 @@
 const express    = require('express');
 const cors       = require('cors');
 const helmet     = require('helmet');
-const Database   = require('better-sqlite3');
+const db         = require('./db');
 const cron       = require('node-cron');
 const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcrypt');
@@ -29,11 +35,11 @@ const PORT    = process.env.PORT || 3001;
 // Bind address. Production keeps 127.0.0.1 (Nginx connects locally);
 // containers must bind 0.0.0.0 or the app is unreachable from outside.
 const HOST    = process.env.HOST || '127.0.0.1';
+// Photos and logs are still files on disk. The database itself is PostgreSQL.
 const BASE    = process.env.CV_DATA_DIR || path.join(__dirname, 'cv-data');
-const DB_PATH = path.join(BASE, 'cv.db');
 const PHO_DIR = path.join(BASE, 'photos');
-const BAK_DIR = path.join(BASE, 'backups');
 const LOG_FILE= path.join(BASE, 'access.log');
+const MIG_DIR = path.join(__dirname, 'migrations');
 
 // ============================================================
 // CONFIGURATION — change before deployment
@@ -137,7 +143,7 @@ const aiQueue = {
 };
 
 // Create directories
-[BASE, PHO_DIR, BAK_DIR].forEach(d => {
+[BASE, PHO_DIR].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
@@ -176,6 +182,7 @@ function logRequest(req, res, next) {
 }
 
 // --- Middleware ---
+// Nginx reverse proxy — echte Client-IP aus X-Forwarded-For lesen
 app.set('trust proxy', 1);
 
 // AI generation needs a local Ollama instance. Environments without one
@@ -187,7 +194,7 @@ app.use('/ai/generate', (req, res, next) => {
       message: 'Generator AI nie jest dostepny w tym srodowisku.' });
   }
   next();
-}); // Nginx reverse proxy — echte Client-IP aus X-Forwarded-For lesen
+});
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
 app.use(logRequest);
@@ -201,68 +208,62 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization']
 }));
 
-// --- Database ---
-const db = new Database(DB_PATH);
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id            TEXT PRIMARY KEY,
-    email         TEXT UNIQUE NOT NULL,
-    password      TEXT NOT NULL,
-    name          TEXT NOT NULL DEFAULT '',
-    role          TEXT NOT NULL DEFAULT 'user',
-    active        INTEGER NOT NULL DEFAULT 1,
-    login_attempts INTEGER NOT NULL DEFAULT 0,
-    locked_until  TEXT,
-    created       TEXT NOT NULL,
-    last_login    TEXT
+// ============================================================
+// DATABASE MIGRATIONS
+// ============================================================
+// Every .sql file in migrations/ runs once, in filename order, inside a
+// transaction. Applied files are recorded in schema_migrations, so a
+// restart is a no-op. Never edit a file that has already run — add a new
+// one with a higher number.
+async function runMigrations() {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      filename TEXT PRIMARY KEY,
+      applied  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  const files = fs.existsSync(MIG_DIR)
+    ? fs.readdirSync(MIG_DIR).filter(f => f.endsWith('.sql')).sort()
+    : [];
+
+  const done = new Set(
+    (await db.query('SELECT filename FROM schema_migrations')).rows.map(r => r.filename)
   );
 
-  CREATE TABLE IF NOT EXISTS security_log (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts         TEXT NOT NULL,
-    event      TEXT NOT NULL,
-    email      TEXT,
-    ip         TEXT,
-    details    TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS password_resets (
-    token   TEXT PRIMARY KEY,
-    email   TEXT NOT NULL,
-    expires TEXT NOT NULL,
-    used    INTEGER NOT NULL DEFAULT 0
-  );
-
-  CREATE TABLE IF NOT EXISTS cv (
-    id        TEXT PRIMARY KEY,
-    imie      TEXT NOT NULL DEFAULT '',
-    nazwisko  TEXT NOT NULL DEFAULT '',
-    badge     TEXT NOT NULL DEFAULT '',
-    step      INTEGER NOT NULL DEFAULT 0,
-    is_draft  INTEGER NOT NULL DEFAULT 0,
-    photo_ext TEXT NOT NULL DEFAULT '',
-    updated   TEXT NOT NULL,
-    created   TEXT NOT NULL,
-    data_json TEXT NOT NULL
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_users_email   ON users(email);
-  CREATE INDEX IF NOT EXISTS idx_seclog_ts     ON security_log(ts);
-  CREATE INDEX IF NOT EXISTS idx_seclog_email  ON security_log(email);
-  CREATE INDEX IF NOT EXISTS idx_imie          ON cv(imie);
-  CREATE INDEX IF NOT EXISTS idx_nazwisko      ON cv(nazwisko);
-  CREATE INDEX IF NOT EXISTS idx_updated       ON cv(updated);
-  CREATE INDEX IF NOT EXISTS idx_draft         ON cv(is_draft);
-`);
+  let applied = 0;
+  for (const file of files) {
+    if (done.has(file)) continue;
+    const sql    = fs.readFileSync(path.join(MIG_DIR, file), 'utf8');
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+      await client.query(sql);
+      await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
+      await client.query('COMMIT');
+      console.log(`Migration applied: ${file}`);
+      applied++;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw new Error(`Migration ${file} failed: ${e.message}`);
+    } finally {
+      client.release();
+    }
+  }
+  console.log(applied === 0
+    ? `Migrations: nothing to do (${files.length} already applied)`
+    : `Migrations: applied ${applied} of ${files.length}`);
+}
 
 // ============================================================
 // SECURITY LOG HELPER
 // ============================================================
+// Fire and forget: a failed audit write must never break a request.
 function secLog(event, email, ip, details) {
-  try {
-    db.prepare(`INSERT INTO security_log (ts,event,email,ip,details) VALUES (?,?,?,?,?)`)
-      .run(new Date().toISOString(), event, email||null, ip||null, details||null);
-  } catch(e) {}
+  stmt.secLogInsert
+    .run({ ts: new Date().toISOString(), event, email: email || null,
+           ip: ip || null, details: details || null })
+    .catch(() => {});
 }
 
 // ============================================================
@@ -285,10 +286,30 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// The franchise role is exclusive: an account holding it reaches the
+// franchise calculator and nothing else. Hiding tabs in index.html is not
+// a control — this is. Applied to every non-franchise endpoint.
+function denyFranchise(req, res, next) {
+  if (req.user && req.user.role === 'franchise') {
+    return res.status(403).json({ error: 'forbidden_for_role' });
+  }
+  next();
+}
+
+// Franchise endpoints: franchise partners plus admins (admins need to be
+// able to verify the module and support partners).
+function requireFranchise(req, res, next) {
+  if (req.user && (req.user.role === 'franchise' || req.user.role === 'admin')) return next();
+  return res.status(403).json({ error: 'forbidden_for_role' });
+}
+
+// CV endpoints now always require a valid JWT. Previously the shared API
+// key alone was enough — but that key is readable in the page source, so a
+// franchise account could have reached the CV module simply by sending the
+// key without a token. The key stays as an extra header the frontend sends;
+// it is no longer a credential on its own.
 function requireApiKey(req, res, next) {
-  const key = req.headers['x-api-key'];
-  if (key && key === CONFIG.API_KEY) return next();
-  requireAuth(req, res, next);
+  requireAuth(req, res, () => denyFranchise(req, res, next));
 }
 
 // ============================================================
@@ -339,11 +360,12 @@ const stmt = {
   userDelete:       db.prepare(`DELETE FROM users WHERE id=?`),
 
   // Security log
+  secLogInsert:     db.prepare(`INSERT INTO security_log (ts,event,email,ip,details) VALUES (@ts,@event,@email,@ip,@details)`),
   secLogList:       db.prepare(`SELECT * FROM security_log ORDER BY ts DESC LIMIT 200`),
   secLogCleanup:    db.prepare(`DELETE FROM security_log WHERE ts < @cutoff`),
 
   // Password resets
-  resetInsert:      db.prepare(`INSERT OR REPLACE INTO password_resets (token,email,expires,used) VALUES (@token,@email,@expires,0)`),
+  resetInsert:      db.prepare(`INSERT INTO password_resets (token,email,expires,used) VALUES (@token,@email,@expires,0) ON CONFLICT(token) DO UPDATE SET email=excluded.email,expires=excluded.expires,used=0`),
   resetGet:         db.prepare(`SELECT * FROM password_resets WHERE token=? AND used=0`),
   resetMarkUsed:    db.prepare(`UPDATE password_resets SET used=1 WHERE token=?`),
   resetCleanup:     db.prepare(`DELETE FROM password_resets WHERE expires < ? OR used=1`),
@@ -351,21 +373,60 @@ const stmt = {
   // CV
   cvUpsert:    db.prepare(`INSERT INTO cv (id,imie,nazwisko,badge,step,is_draft,photo_ext,updated,created,data_json) VALUES (@id,@imie,@nazwisko,@badge,@step,@is_draft,@photo_ext,@updated,@created,@data_json) ON CONFLICT(id) DO UPDATE SET imie=excluded.imie,nazwisko=excluded.nazwisko,badge=excluded.badge,step=excluded.step,is_draft=excluded.is_draft,photo_ext=excluded.photo_ext,updated=excluded.updated,data_json=excluded.data_json`),
   cvGetAll:    db.prepare(`SELECT id,imie,nazwisko,badge,step,photo_ext,updated,created FROM cv WHERE is_draft=0 ORDER BY updated DESC LIMIT 500`),
-  cvSearch:    db.prepare(`SELECT id,imie,nazwisko,badge,step,photo_ext,updated,created FROM cv WHERE is_draft=0 AND (imie LIKE @q OR nazwisko LIKE @q OR (imie||' '||nazwisko) LIKE @q) ORDER BY updated DESC LIMIT 100`),
+  // ILIKE, not LIKE: SQLite's LIKE was case-insensitive, PostgreSQL's is not.
+  cvSearch:    db.prepare(`SELECT id,imie,nazwisko,badge,step,photo_ext,updated,created FROM cv WHERE is_draft=0 AND (imie ILIKE @q OR nazwisko ILIKE @q OR (imie||' '||nazwisko) ILIKE @q) ORDER BY updated DESC LIMIT 100`),
   cvGetOne:    db.prepare(`SELECT * FROM cv WHERE id=?`),
   cvDelete:    db.prepare(`DELETE FROM cv WHERE id=?`),
   cvCleanList: db.prepare(`SELECT id,photo_ext FROM cv WHERE updated < @cutoff`),
   cvCleanDel:  db.prepare(`DELETE FROM cv WHERE updated < @cutoff`),
-  cvCount:     db.prepare(`SELECT COUNT(*) as total FROM cv WHERE is_draft=0`)
+  // ::int cast — the pg driver returns bigint as a string otherwise.
+  cvCount:     db.prepare(`SELECT COUNT(*)::int as total FROM cv WHERE is_draft=0`),
+
+  // Franchise offers. Every read is scoped by user_id from the JWT.
+  offInsert:   db.prepare(`INSERT INTO franchise_offers
+    (user_id,client_first_name,client_last_name,offer_date,paket,provision_monat,persons,addons,deductions_shown,pflegegrad_1,pflegegrad_2,base_monat,total_monat,total_tag,gesamt_monat,gesamt_tag,gesamt_einmalig)
+    VALUES (@user_id,@client_first_name,@client_last_name,@offer_date,@paket,@provision_monat,@persons,@addons,@deductions_shown,@pflegegrad_1,@pflegegrad_2,@base_monat,@total_monat,@total_tag,@gesamt_monat,@gesamt_tag,@gesamt_einmalig)
+    RETURNING id`),
+  offUpdate:   db.prepare(`UPDATE franchise_offers SET
+    client_first_name=@client_first_name,client_last_name=@client_last_name,offer_date=@offer_date,
+    paket=@paket,provision_monat=@provision_monat,persons=@persons,addons=@addons,
+    deductions_shown=@deductions_shown,pflegegrad_1=@pflegegrad_1,pflegegrad_2=@pflegegrad_2,
+    base_monat=@base_monat,total_monat=@total_monat,total_tag=@total_tag,
+    gesamt_monat=@gesamt_monat,gesamt_tag=@gesamt_tag,gesamt_einmalig=@gesamt_einmalig,
+    updated_at=NOW()
+    WHERE id=@id AND user_id=@user_id RETURNING id`),
+  offListOwn:  db.prepare(`SELECT id,client_first_name,client_last_name,offer_date,paket,total_monat,total_tag,created_at,updated_at FROM franchise_offers WHERE user_id=? ORDER BY created_at DESC LIMIT 500`),
+  offListAll:  db.prepare(`SELECT o.*,u.email AS owner_email,u.name AS owner_name FROM franchise_offers o JOIN users u ON u.id=o.user_id ORDER BY o.created_at DESC LIMIT 500`),
+  // Accent-folded search: typing "muller" must find "Müller", and the other
+  // way round. translate() is used instead of the unaccent extension so no
+  // database privileges beyond plain SQL are needed.
+  offSearch:   db.prepare(`SELECT id,client_first_name,client_last_name,offer_date,paket,total_monat,total_tag,created_at,updated_at
+    FROM franchise_offers
+    WHERE user_id=@user_id AND (
+         translate(lower(client_first_name),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn') LIKE translate(lower(@q),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn')
+      OR translate(lower(client_last_name), 'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn') LIKE translate(lower(@q),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn')
+      OR translate(lower(client_first_name||' '||client_last_name),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn') LIKE translate(lower(@q),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn')
+    )
+    ORDER BY created_at DESC LIMIT 100`),
+  offGetOwn:   db.prepare(`SELECT * FROM franchise_offers WHERE id=@id AND user_id=@user_id`),
+  offGetAny:   db.prepare(`SELECT * FROM franchise_offers WHERE id=?`),
+  offDelOwn:   db.prepare(`DELETE FROM franchise_offers WHERE id=@id AND user_id=@user_id`)
 };
 
 // ============================================================
 // ROUTES — AUTH
 // ============================================================
 
-app.get('/health', (req, res) => {
-  const { total } = stmt.cvCount.get();
-  res.json({ status: 'ok', total, time: new Date().toISOString() });
+// Used by the uptime monitor and by Railway's healthcheck, so it must fail
+// loudly when the database is unreachable rather than reporting ok.
+app.get('/health', async (req, res) => {
+  try {
+    const { total } = await stmt.cvCount.get();
+    res.json({ status: 'ok', db: 'up', total, time: new Date().toISOString() });
+  } catch (e) {
+    res.status(503).json({ status: 'error', db: 'down', error: e.message,
+                           time: new Date().toISOString() });
+  }
 });
 
 // POST /auth/login
@@ -374,7 +435,7 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
   const ip = req.ip;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-  const user = stmt.userByEmail.get(email.toLowerCase().trim());
+  const user = await stmt.userByEmail.get(email.toLowerCase().trim());
 
   // User not found
   if (!user) {
@@ -397,20 +458,20 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: `Account locked. Try again in ${minutesLeft} minute(s).` });
     }
     // Lock expired — auto-unlock
-    stmt.userUnlock.run({ id: user.id });
+    await stmt.userUnlock.run({ id: user.id });
   }
 
   // Verify password
   const valid = await bcrypt.compare(password, user.password);
 
   if (!valid) {
-    stmt.userFailedLogin.run({ email: user.email });
+    await stmt.userFailedLogin.run({ email: user.email });
     const attempts = user.login_attempts + 1;
 
     // Lock account after MAX_LOGIN_ATTEMPTS
     if (attempts >= CONFIG.MAX_LOGIN_ATTEMPTS) {
       const until = new Date(Date.now() + CONFIG.LOCKOUT_MINUTES * 60000).toISOString();
-      stmt.userLock.run({ until, email: user.email });
+      await stmt.userLock.run({ until, email: user.email });
       secLog('ACCOUNT_LOCKED', email, ip, `Locked after ${attempts} failed attempts`);
 
       // Send email notification
@@ -440,7 +501,7 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
   }
 
   // Success
-  stmt.userLastLogin.run({ time: new Date().toISOString(), id: user.id });
+  await stmt.userLastLogin.run({ time: new Date().toISOString(), id: user.id });
   secLog('LOGIN_SUCCESS', email, ip, null);
 
   const token = jwt.sign(
@@ -457,12 +518,12 @@ app.post('/auth/forgot', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
 
-  const user = stmt.userByEmail.get(email.toLowerCase().trim());
+  const user = await stmt.userByEmail.get(email.toLowerCase().trim());
   if (!user) return res.json({ ok: true }); // Don't reveal if email exists
 
   const token   = crypto.randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + CONFIG.RESET_TOKEN_HOURS * 3600000).toISOString();
-  stmt.resetInsert.run({ token, email: user.email, expires });
+  await stmt.resetInsert.run({ token, email: user.email, expires });
   secLog('PASSWORD_RESET_REQUESTED', user.email, req.ip, null);
 
   const resetUrl = `${CONFIG.APP_URL}?reset=${token}`;
@@ -497,21 +558,21 @@ app.post('/auth/reset', async (req, res) => {
   if (!token || !password) return res.status(400).json({ error: 'Token and password required' });
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
-  const record = stmt.resetGet.get(token);
+  const record = await stmt.resetGet.get(token);
   if (!record) return res.status(400).json({ error: 'Invalid or expired reset link' });
   if (new Date(record.expires) < new Date()) return res.status(400).json({ error: 'Reset link has expired' });
 
   const hash = await bcrypt.hash(password, CONFIG.BCRYPT_ROUNDS);
-  stmt.userPassword.run({ password: hash, email: record.email });
-  stmt.resetMarkUsed.run(token);
+  await stmt.userPassword.run({ password: hash, email: record.email });
+  await stmt.resetMarkUsed.run(token);
   secLog('PASSWORD_RESET_SUCCESS', record.email, req.ip, null);
 
   res.json({ ok: true });
 });
 
 // GET /auth/me
-app.get('/auth/me', requireAuth, (req, res) => {
-  const user = stmt.userById.get(req.user.id);
+app.get('/auth/me', requireAuth, async (req, res) => {
+  const user = await stmt.userById.get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
 });
@@ -520,8 +581,8 @@ app.get('/auth/me', requireAuth, (req, res) => {
 // ROUTES — USER MANAGEMENT (admin only)
 // ============================================================
 
-app.get('/users', requireAuth, requireAdmin, (req, res) => {
-  res.json(stmt.usersList.all());
+app.get('/users', requireAuth, requireAdmin, async (req, res) => {
+  res.json(await stmt.usersList.all());
 });
 
 app.post('/users', requireAuth, requireAdmin, async (req, res) => {
@@ -532,72 +593,75 @@ app.post('/users', requireAuth, requireAdmin, async (req, res) => {
   const id   = 'usr_' + Date.now();
   const hash = await bcrypt.hash(password, CONFIG.BCRYPT_ROUNDS);
   try {
-    stmt.userInsert.run({ id, email: email.toLowerCase().trim(), password: hash, name: name||'', role: role||'user', active: 1, created: new Date().toISOString() });
+    await stmt.userInsert.run({ id, email: email.toLowerCase().trim(), password: hash, name: name||'', role: role||'user', active: 1, created: new Date().toISOString() });
     secLog('USER_CREATED', email, req.ip, `Role: ${role||'user'}`);
     res.json({ ok: true, id });
   } catch(e) {
-    if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'Email already exists' });
+    // 23505 = unique_violation in PostgreSQL
+    if (e.code === '23505') return res.status(409).json({ error: 'Email already exists' });
+    // 23514 = check_violation — an unknown role value
+    if (e.code === '23514') return res.status(400).json({ error: 'Invalid role. Allowed: admin, user, franchise' });
     res.status(500).json({ error: e.message });
   }
 });
 
-app.put('/users/:id', requireAuth, requireAdmin, (req, res) => {
+app.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, role, active } = req.body;
   try {
-    stmt.userUpdate.run({ id: req.params.id, name: name||'', role: role||'user', active: active?1:0 });
+    await stmt.userUpdate.run({ id: req.params.id, name: name||'', role: role||'user', active: active?1:0 });
     secLog('USER_UPDATED', null, req.ip, `ID: ${req.params.id} active:${active} role:${role}`);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // PUT /users/:id/unlock — admin unlocks a locked account
-app.put('/users/:id/unlock', requireAuth, requireAdmin, (req, res) => {
+app.put('/users/:id/unlock', requireAuth, requireAdmin, async (req, res) => {
   try {
-    stmt.userUnlock.run({ id: req.params.id });
+    await stmt.userUnlock.run({ id: req.params.id });
     secLog('ACCOUNT_UNLOCKED', null, req.ip, `ID: ${req.params.id} by admin ${req.user.email}`);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/users/:id', requireAuth, requireAdmin, (req, res) => {
+app.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'Cannot delete your own account' });
   try {
-    stmt.userDelete.run(req.params.id);
+    await stmt.userDelete.run(req.params.id);
     secLog('USER_DELETED', null, req.ip, `ID: ${req.params.id}`);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // GET /security-log — admin only
-app.get('/security-log', requireAuth, requireAdmin, (req, res) => {
-  res.json(stmt.secLogList.all());
+app.get('/security-log', requireAuth, requireAdmin, async (req, res) => {
+  res.json(await stmt.secLogList.all());
 });
 
 // ============================================================
 // ROUTES — CV
 // ============================================================
-app.get('/cv/list',      requireApiKey, (req, res) => {
-  try { res.json(stmt.cvGetAll.all()); } catch(e) { res.status(500).json({ error: e.message }); }
+app.get('/cv/list',      requireApiKey, async (req, res) => {
+  try { res.json(await stmt.cvGetAll.all()); } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/cv/search',    requireApiKey, (req, res) => {
+app.get('/cv/search',    requireApiKey, async (req, res) => {
   const q = (req.query.q || '').trim();
-  if (!q) return res.json(stmt.cvGetAll.all());
-  try { res.json(stmt.cvSearch.all({ q: `%${q}%` })); } catch(e) { res.status(500).json({ error: e.message }); }
+  if (!q) return res.json(await stmt.cvGetAll.all());
+  try { res.json(await stmt.cvSearch.all({ q: `%${q}%` })); } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/cv/stats',     requireApiKey, (req, res) => {
+app.get('/cv/stats',     requireApiKey, async (req, res) => {
   try {
-    const { total } = stmt.cvCount.get();
+    const { total } = await stmt.cvCount.get();
     let mb = 0;
     try { mb = fs.readdirSync(PHO_DIR).reduce((s,f) => { try { return s + fs.statSync(path.join(PHO_DIR,f)).size; } catch(e){ return s; } }, 0) / (1024*1024); } catch(e) {}
     res.json({ total, retention_days: CONFIG.RETENTION_DAYS, photos_mb: Math.round(mb*10)/10 });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/cv/:id',       requireApiKey, (req, res) => {
+app.get('/cv/:id',       requireApiKey, async (req, res) => {
   try {
-    const row = stmt.cvGetOne.get(req.params.id);
+    const row = await stmt.cvGetOne.get(req.params.id);
     if (!row) return res.status(404).json({ error: 'Not found' });
     const data = JSON.parse(row.data_json);
     data.photo = loadPhoto(row.id, row.photo_ext);
@@ -605,7 +669,7 @@ app.get('/cv/:id',       requireApiKey, (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/cv/save',     requireApiKey, (req, res) => {
+app.post('/cv/save',     requireApiKey, async (req, res) => {
   const data = req.body;
   if (!data || !data.imie) return res.status(400).json({ error: 'Missing first name (imie)' });
   const id  = (data.id && !data.id.startsWith('draft_')) ? data.id : ('cv_' + Date.now());
@@ -614,13 +678,13 @@ app.post('/cv/save',     requireApiKey, (req, res) => {
   const store = { ...data }; delete store.photo;
   store.id = id; store.updated = now;
   try {
-    const existing = stmt.cvGetOne.get(id);
-    stmt.cvUpsert.run({ id, imie:(data.imie||'').trim(), nazwisko:(data.nazwisko||'').trim(), badge:data.badge||'', step:data.step||0, is_draft:0, photo_ext:photoExt||(existing?.photo_ext||''), updated:now, created:now, data_json:JSON.stringify(store) });
+    const existing = await stmt.cvGetOne.get(id);
+    await stmt.cvUpsert.run({ id, imie:(data.imie||'').trim(), nazwisko:(data.nazwisko||'').trim(), badge:data.badge||'', step:data.step||0, is_draft:0, photo_ext:photoExt||(existing?.photo_ext||''), updated:now, created:now, data_json:JSON.stringify(store) });
     res.json({ ok: true, id });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/cv/draft',    requireApiKey, (req, res) => {
+app.post('/cv/draft',    requireApiKey, async (req, res) => {
   const data = req.body;
   if (!data || !data.imie) return res.json({ ok: false });
   const id  = 'draft_' + (data.imie||'x').trim().replace(/\s+/g,'_').toLowerCase();
@@ -628,15 +692,15 @@ app.post('/cv/draft',    requireApiKey, (req, res) => {
   const photoExt = savePhoto(id, data.photo || '');
   const store = { ...data }; delete store.photo; store.id = id;
   try {
-    const existing = stmt.cvGetOne.get(id);
-    stmt.cvUpsert.run({ id, imie:(data.imie||'').trim(), nazwisko:(data.nazwisko||'').trim(), badge:data.badge||'', step:data.step||0, is_draft:1, photo_ext:photoExt||(existing?.photo_ext||''), updated:now, created:now, data_json:JSON.stringify(store) });
+    const existing = await stmt.cvGetOne.get(id);
+    await stmt.cvUpsert.run({ id, imie:(data.imie||'').trim(), nazwisko:(data.nazwisko||'').trim(), badge:data.badge||'', step:data.step||0, is_draft:1, photo_ext:photoExt||(existing?.photo_ext||''), updated:now, created:now, data_json:JSON.stringify(store) });
     res.json({ ok: true, id });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/cv/draft/:name', requireApiKey, (req, res) => {
+app.get('/cv/draft/:name', requireApiKey, async (req, res) => {
   try {
-    const row = stmt.cvGetOne.get('draft_' + req.params.name.toLowerCase());
+    const row = await stmt.cvGetOne.get('draft_' + req.params.name.toLowerCase());
     if (!row) return res.status(404).json({ error: 'Draft not found' });
     const data = JSON.parse(row.data_json);
     data.photo = loadPhoto(row.id, row.photo_ext);
@@ -644,13 +708,213 @@ app.get('/cv/draft/:name', requireApiKey, (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/cv/:id',    requireApiKey, (req, res) => {
+app.delete('/cv/:id',    requireApiKey, async (req, res) => {
   try {
-    const row = stmt.cvGetOne.get(req.params.id);
+    const row = await stmt.cvGetOne.get(req.params.id);
     if (row) deletePhoto(row.id, row.photo_ext);
-    stmt.cvDelete.run(req.params.id);
+    await stmt.cvDelete.run(req.params.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
+// FRANCHISE PRICING (licence partner price list, 18.05.2026)
+// ============================================================
+// The monthly price is the binding figure. The month-to-day divisor is
+// fixed per package and derived from the price list itself, so a zero
+// commission reproduces the exact daily rates printed in the PDF
+// (77 / 93 / 107 / 120 EUR).
+const FRANCHISE_PRODUCTS = {
+  bronze: { monat: 2300, tag: 77,  label: 'Seniorenbetreuung Bronze' },
+  silber: { monat: 2800, tag: 93,  label: 'Seniorenbetreuung Silber' },
+  gold:   { monat: 3200, tag: 107, label: 'Seniorenbetreuung Gold'   },
+  platin: { monat: 3600, tag: 120, label: 'Seniorenbetreuung Platin' }
+};
+
+// Identical to the end-customer price list — verified against the PDF.
+const FRANCHISE_ADDONS = {
+  express:         { amount: 300, per: 'once' },
+  fuehrerschein:   { amount: 8,   per: 'day'  },
+  zweitepersonhh:  { amount: 4,   per: 'day'  },
+  zweitepersonzb:  { amount: 15,  per: 'day'  },
+  sonderbetreuung: { amount: 10,  per: 'day'  }
+};
+
+const FRANCHISE_DAYS = 30;
+
+/**
+ * Recompute every amount on the server. The browser shows the same figures,
+ * but what gets stored is computed here, so a saved offer can never carry
+ * numbers that do not follow the price list. The commission is never
+ * applied to add-ons.
+ */
+function franchiseCalc({ paket, provision_monat, persons, addons }) {
+  const product = FRANCHISE_PRODUCTS[paket];
+  if (!product) throw new Error('Unknown paket: ' + paket);
+
+  const divisor   = product.monat / product.tag;
+  const provision = Number(provision_monat) || 0;
+  if (provision < 0) throw new Error('Provision must not be negative');
+
+  const list = Array.isArray(addons) ? addons.slice() : [];
+  // Two patients are priced solely through this add-on.
+  if (Number(persons) === 2 && !list.includes('zweitepersonzb')) list.push('zweitepersonzb');
+
+  let perDay = 0, once = 0;
+  for (const key of list) {
+    const a = FRANCHISE_ADDONS[key];
+    if (!a) throw new Error('Unknown addon: ' + key);
+    if (a.per === 'day') perDay += a.amount; else once += a.amount;
+  }
+
+  const base_monat  = product.monat;
+  const total_monat = base_monat + provision;
+  const total_tag   = total_monat / divisor;
+
+  const round = (v) => Math.round(v * 100) / 100;
+  return {
+    addons_normalised: list,
+    base_monat:      round(base_monat),
+    total_monat:     round(total_monat),
+    total_tag:       round(total_tag),
+    gesamt_monat:    round(total_monat + perDay * FRANCHISE_DAYS),
+    gesamt_tag:      round(total_tag + perDay),
+    gesamt_einmalig: round(once)
+  };
+}
+
+/** Validate and normalise the request body for an offer. */
+function franchiseBody(b) {
+  const first = (b.client_first_name || '').trim();
+  const last  = (b.client_last_name  || '').trim();
+  const date  = (b.offer_date || '').trim();
+
+  if (!first || !last || !date) {
+    const e = new Error('Bitte Vorname, Nachname und Datum des Kunden eingeben.');
+    e.status = 400; throw e;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const e = new Error('offer_date must be YYYY-MM-DD'); e.status = 400; throw e;
+  }
+
+  const persons = Number(b.persons) === 2 ? 2 : 1;
+  const grade   = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 0 && n <= 5 ? n : null;
+  };
+
+  let calc;
+  try {
+    calc = franchiseCalc({ paket: b.paket, provision_monat: b.provision_monat,
+                           persons, addons: b.addons });
+  } catch (err) { err.status = 400; throw err; }
+
+  return {
+    client_first_name: first,
+    client_last_name:  last,
+    offer_date:        date,
+    paket:             b.paket,
+    provision_monat:   Number(b.provision_monat) || 0,
+    persons,
+    addons:            JSON.stringify(calc.addons_normalised),
+    deductions_shown:  !!b.deductions_shown,
+    pflegegrad_1:      grade(b.pflegegrad_1),
+    pflegegrad_2:      persons === 2 ? grade(b.pflegegrad_2) : null,
+    base_monat:        calc.base_monat,
+    total_monat:       calc.total_monat,
+    total_tag:         calc.total_tag,
+    gesamt_monat:      calc.gesamt_monat,
+    gesamt_tag:        calc.gesamt_tag,
+    gesamt_einmalig:   calc.gesamt_einmalig
+  };
+}
+
+// ============================================================
+// ROUTES — FRANCHISE
+// ============================================================
+
+// The price list the calculator renders. Kept server-side so the browser
+// and the stored offers can never disagree about it.
+app.get('/franchise/pricing', requireAuth, requireFranchise, async (req, res) => {
+  res.json({
+    products: Object.fromEntries(Object.entries(FRANCHISE_PRODUCTS).map(([k, v]) =>
+      [k, { monat: v.monat, tag: v.tag, label: v.label, divisor: v.monat / v.tag }])),
+    addons: FRANCHISE_ADDONS,
+    days_in_month: FRANCHISE_DAYS
+  });
+});
+
+// Preview a calculation without saving it.
+app.post('/franchise/calc', requireAuth, requireFranchise, async (req, res) => {
+  try {
+    const b = req.body || {};
+    res.json(franchiseCalc({ paket: b.paket, provision_monat: b.provision_monat,
+                             persons: b.persons, addons: b.addons }));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Declared before '/franchise/offers/:id', otherwise Express would treat
+// 'search' as an id.
+app.get('/franchise/offers/search', requireAuth, requireFranchise, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  try {
+    if (!q) return res.json(await stmt.offListOwn.all(req.user.id));
+    res.json(await stmt.offSearch.all({ user_id: req.user.id, q: `%${q}%` }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/franchise/offers', requireAuth, requireFranchise, async (req, res) => {
+  try {
+    // An admin inspecting the module sees every offer with its owner;
+    // a franchise partner only ever sees their own rows.
+    if (req.user.role === 'admin' && req.query.all === '1') {
+      return res.json(await stmt.offListAll.all());
+    }
+    res.json(await stmt.offListOwn.all(req.user.id));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/franchise/offers/:id', requireAuth, requireFranchise, async (req, res) => {
+  try {
+    // 404 rather than 403 for someone else's offer: a 403 would confirm
+    // that the row exists.
+    const row = req.user.role === 'admin'
+      ? await stmt.offGetAny.get(req.params.id)
+      : await stmt.offGetOwn.get({ id: req.params.id, user_id: req.user.id });
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/franchise/offers', requireAuth, requireFranchise, async (req, res) => {
+  try {
+    const row = franchiseBody(req.body || {});
+    const created = await stmt.offInsert.get({ ...row, user_id: req.user.id });
+    secLog('FRANCHISE_OFFER_CREATED', req.user.email, req.ip,
+           `ID: ${created.id} client: ${row.client_last_name}`);
+    res.json({ ok: true, id: created.id });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+app.put('/franchise/offers/:id', requireAuth, requireFranchise, async (req, res) => {
+  try {
+    const row = franchiseBody(req.body || {});
+    const updated = await stmt.offUpdate.get({ ...row, id: req.params.id,
+                                               user_id: req.user.id });
+    if (!updated) return res.status(404).json({ error: 'Not found' });
+    secLog('FRANCHISE_OFFER_UPDATED', req.user.email, req.ip, `ID: ${req.params.id}`);
+    res.json({ ok: true, id: updated.id });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+app.delete('/franchise/offers/:id', requireAuth, requireFranchise, async (req, res) => {
+  try {
+    const r = await stmt.offDelOwn.run({ id: req.params.id, user_id: req.user.id });
+    if (r.changes === 0) return res.status(404).json({ error: 'Not found' });
+    secLog('FRANCHISE_OFFER_DELETED', req.user.email, req.ip, `ID: ${req.params.id}`);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ============================================================
@@ -658,7 +922,7 @@ app.delete('/cv/:id',    requireApiKey, (req, res) => {
 // ============================================================
 
 // GET /ai/status — check queue status (no auth needed)
-app.get('/ai/status', (req, res) => {
+app.get('/ai/status', async (req, res) => {
   res.json({
     queue:   aiQueue.queueLength,
     running: aiQueue.isRunning,
@@ -693,30 +957,24 @@ app.post('/ai/generate', requireApiKey, async (req, res) => {
 // SCHEDULED JOBS
 // ============================================================
 
-// Nightly backup at 3:00 AM
-cron.schedule('0 3 * * *', () => {
-  try {
-    const stamp  = new Date().toISOString().slice(0,10);
-    const backup = path.join(BAK_DIR, `cv-${stamp}.db`);
-    fs.copyFileSync(DB_PATH, backup);
-    const files = fs.readdirSync(BAK_DIR).filter(f=>f.endsWith('.db')).sort().reverse();
-    files.slice(CONFIG.BACKUP_KEEP).forEach(f => fs.unlinkSync(path.join(BAK_DIR, f)));
-    console.log(`[${new Date().toISOString()}] Backup: ${backup} (kept ${Math.min(files.length, CONFIG.BACKUP_KEEP)})`);
-  } catch(e) { console.error('Backup error:', e.message); }
-});
+// Database backups are no longer the application's job. The old job copied
+// the SQLite file nightly; PostgreSQL is backed up by the database provider
+// (Railway does this automatically). Photos on disk are covered by the
+// volume snapshot of whichever host serves them.
 
 // Auto-cleanup at 2:00 AM
-cron.schedule('0 2 * * *', () => {
+cron.schedule('0 2 * * *', async () => {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - CONFIG.RETENTION_DAYS);
   const cutoffStr = cutoff.toISOString();
   try {
-    stmt.cvCleanList.all({ cutoff: cutoffStr }).forEach(r => deletePhoto(r.id, r.photo_ext));
-    const r = stmt.cvCleanDel.run({ cutoff: cutoffStr });
-    stmt.resetCleanup.run(new Date().toISOString());
+    // Parentheses matter: await the query, then iterate the rows.
+    (await stmt.cvCleanList.all({ cutoff: cutoffStr })).forEach(r => deletePhoto(r.id, r.photo_ext));
+    const r = await stmt.cvCleanDel.run({ cutoff: cutoffStr });
+    await stmt.resetCleanup.run(new Date().toISOString());
     // Clean security log older than 1 year
     const logCutoff = new Date(); logCutoff.setFullYear(logCutoff.getFullYear() - 1);
-    stmt.secLogCleanup.run({ cutoff: logCutoff.toISOString() });
+    await stmt.secLogCleanup.run({ cutoff: logCutoff.toISOString() });
     if (r.changes > 0) console.log(`[${new Date().toISOString()}] Cleanup: deleted ${r.changes} old CV records`);
   } catch(e) { console.error('Cleanup error:', e.message); }
 });
@@ -732,7 +990,7 @@ const STATIC_DIR = process.env.STATIC_DIR || __dirname;
 // index.html ships with __API_KEY_PLACEHOLDER__ instead of a committed key.
 // It is substituted from the environment at request time, so the key exists
 // only in env vars. Must be registered before express.static below.
-app.get(['/', '/index.html'], (req, res) => {
+app.get(['/', '/index.html'], async (req, res) => {
   fs.readFile(path.join(STATIC_DIR, 'index.html'), 'utf8', (err, html) => {
     if (err) return res.status(500).send('index.html not found');
     res.type('html').send(html.split('__API_KEY_PLACEHOLDER__').join(CONFIG.API_KEY));
@@ -744,10 +1002,25 @@ app.use(express.static(STATIC_DIR));
 // ============================================================
 // START
 // ============================================================
-app.listen(PORT, HOST, () => {
-  const { total } = stmt.cvCount.get();
-  const users = stmt.usersList.all().length;
-  console.log(`[${new Date().toISOString()}] CV API v4 running on ${HOST}:${PORT}`);
-  console.log(`CVs: ${total} | Users: ${users} | DB: ${DB_PATH}`);
-  console.log(`Security: JWT 12h | Rate limit: 5 logins/15min | Lockout after ${CONFIG.MAX_LOGIN_ATTEMPTS} attempts`);
-});
+// The database must be reachable and migrated before the first request is
+// accepted. Railway starts the app and the database in parallel, so the
+// first connection attempts can legitimately fail.
+(async () => {
+  try {
+    await db.waitUntilReady();
+    await runMigrations();
+
+    const { total } = await stmt.cvCount.get();
+    const users     = (await stmt.usersList.all()).length;
+
+    app.listen(PORT, HOST, () => {
+      console.log(`[${new Date().toISOString()}] CV API v5 running on ${HOST}:${PORT}`);
+      console.log(`CVs: ${total} | Users: ${users} | DB: PostgreSQL`);
+      console.log(`Security: JWT 12h | Rate limit: 5 logins/15min | Lockout after ${CONFIG.MAX_LOGIN_ATTEMPTS} attempts`);
+      console.log(`AI: ${process.env.AI_DISABLED === '1' ? 'disabled in this environment' : CONFIG.OLLAMA_URL}`);
+    });
+  } catch (e) {
+    console.error('FATAL: startup failed —', e.message);
+    process.exit(1);
+  }
+})();

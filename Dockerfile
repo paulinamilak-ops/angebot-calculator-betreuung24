@@ -1,6 +1,6 @@
 FROM node:20-bookworm-slim
 
-# better-sqlite3 and bcrypt are native modules and need a toolchain to build.
+# bcrypt is a native module and needs a toolchain to build.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 make g++ ca-certificates \
     && rm -rf /var/lib/apt/lists/*

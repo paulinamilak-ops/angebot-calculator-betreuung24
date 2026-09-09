@@ -1,25 +1,26 @@
 {
   "name": "angebot-calculator-betreuung24",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
-  "description": "Betreuung 24 - Angebot Calculator + CV Generator",
+  "description": "Betreuung 24 - Angebot Calculator + CV Generator + Franchise-Kalkulator",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check-html": "node -e \"const fs=require('fs');const html=fs.readFileSync('index.html','utf8');const s=html.match(/<script[^>]*>([\\s\\S]*?)<\\/script>/g);s.forEach((x,i)=>{try{new Function(x.replace(/<\\/?script[^>]*>/g,''));console.log('Script',i+1,'OK');}catch(e){console.log('Script',i+1,'ERROR:',e.message);process.exitCode=1;}});\""
+    "check-html": "node -e \"const fs=require('fs');const html=fs.readFileSync('index.html','utf8');const s=html.match(/<script[^>]*>([\\s\\S]*?)<\\/script>/g);s.forEach((x,i)=>{try{new Function(x.replace(/<\\/?script[^>]*>/g,''));console.log('Script',i+1,'OK');}catch(e){console.log('Script',i+1,'ERROR:',e.message);process.exitCode=1;}});\"",
+    "check-js": "node --check server.js && node --check db.js && node --check create-admin.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "better-sqlite3": "^11.5.0",
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "pg": "^8.13.1"
   }
 }

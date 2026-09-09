@@ -1,4 +1,21 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: betreuung
+      POSTGRES_PASSWORD: lokalne-haslo-tylko-do-testow
+      POSTGRES_DB: betreuung24
+    ports:
+      # Exposed so you can inspect the database with a GUI tool if needed.
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U betreuung -d betreuung24"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   app:
     build: .
     ports:
@@ -6,14 +23,19 @@ services:
     env_file:
       - .env
     environment:
+      DATABASE_URL: postgres://betreuung:lokalne-haslo-tylko-do-testow@db:5432/betreuung24
       HOST: 0.0.0.0
       PORT: 3001
       CV_DATA_DIR: /data
       STATIC_DIR: /app
       AI_DISABLED: "1"
     volumes:
-      # Database, photos and logs survive container restarts.
+      # Photos and logs survive container restarts.
       - appdata:/data
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
+  pgdata:
   appdata:
