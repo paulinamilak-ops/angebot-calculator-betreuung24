@@ -1,0 +1,19 @@
+# Secrets and environment
+.env
+.env.*
+!.env.example
+ecosystem.config.js
+
+# Dependencies
+node_modules/
+
+# Runtime data (database, photos, logs, backups)
+cv-data/
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
