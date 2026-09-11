@@ -199,13 +199,23 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '20mb' }));
 app.use(logRequest);
 app.use(apiLimiter);
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || CONFIG.ALLOWED_ORIGINS.includes(origin)) cb(null, true);
-    else cb(new Error('CORS: origin not allowed — ' + origin));
-  },
-  methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization']
+// The page's own origin is always allowed: a request the application makes to
+// itself is not cross-site and must never be blocked. Without this rule any
+// deployment on a domain that is not hard-coded in ALLOWED_ORIGINS (Railway,
+// a future domain, a preview environment) fails every POST with a CORS error,
+// which the frontend reports to the user as "Server nicht erreichbar".
+// Browsers send the Origin header on POST even for same-origin requests, so
+// the login request is the first thing to break.
+app.use(cors((req, cb) => {
+  const origin     = req.headers.origin;
+  const selfOrigin = req.protocol + '://' + req.headers.host;
+  const allowed    = !origin || origin === selfOrigin ||
+                     CONFIG.ALLOWED_ORIGINS.includes(origin);
+  cb(allowed ? null : new Error('CORS: origin not allowed — ' + origin), {
+    origin: allowed,
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization']
+  });
 }));
 
 // ============================================================
