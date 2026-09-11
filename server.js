@@ -256,6 +256,49 @@ async function runMigrations() {
 }
 
 // ============================================================
+// FIRST ADMINISTRATOR — ONE-TIME BOOTSTRAP
+// ============================================================
+// A fresh environment has no accounts and no way to log in. This creates
+// the very first administrator from environment variables.
+//
+// It fires only when the users table is completely empty, so it can never
+// overwrite an account, re-create a deleted one, or change a password. Once
+// that first administrator exists, every further account is created from the
+// admin panel — this code becomes a no-op for the life of the database.
+async function bootstrapFirstAdmin() {
+  const email = (process.env.BOOTSTRAP_ADMIN_EMAIL || '').toLowerCase().trim();
+  const pass  = process.env.BOOTSTRAP_ADMIN_PASSWORD || '';
+
+  if (!email || !pass) return;   // nothing configured — normal case
+
+  const r = await db.query('SELECT COUNT(*)::int AS count FROM users');
+  if (r.rows[0].count > 0) {
+    console.log('Bootstrap skipped: accounts already exist. The BOOTSTRAP_ADMIN_* variables have no effect and can be removed.');
+    return;
+  }
+
+  if (pass.length < 8) {
+    console.error('Bootstrap skipped: BOOTSTRAP_ADMIN_PASSWORD must be at least 8 characters.');
+    return;
+  }
+
+  const hash = await bcrypt.hash(pass, CONFIG.BCRYPT_ROUNDS);
+  const id   = 'usr_' + Date.now();
+
+  await stmt.userInsert.run({
+    id, email, password: hash,
+    name:    process.env.BOOTSTRAP_ADMIN_NAME || 'Administrator',
+    role:    'admin',
+    active:  1,
+    created: new Date().toISOString()
+  });
+
+  secLog('BOOTSTRAP_ADMIN_CREATED', email, 'startup', 'First administrator created from environment');
+  console.log(`Bootstrap: first administrator created (${email}).`);
+  console.log('Remove the BOOTSTRAP_ADMIN_* variables now — they will not run again.');
+}
+
+// ============================================================
 // SECURITY LOG HELPER
 // ============================================================
 // Fire and forget: a failed audit write must never break a request.
@@ -1009,6 +1052,7 @@ app.use(express.static(STATIC_DIR));
   try {
     await db.waitUntilReady();
     await runMigrations();
+    await bootstrapFirstAdmin();
 
     const { total } = await stmt.cvCount.get();
     const users     = (await stmt.usersList.all()).length;

@@ -46,7 +46,28 @@ Aplikacja: **http://localhost:3001**
 
 Zatrzymanie: `Ctrl + C` w tym samym okienku.
 
-### Konta testowe
+### Pierwsze konto na nowym środowisku (Railway)
+
+Świeże środowisko nie ma żadnego konta, więc nie ma się czym zalogować.
+Ustaw w panelu Railway trzy zmienne:
+
+```
+BOOTSTRAP_ADMIN_EMAIL     = twoj@email.de
+BOOTSTRAP_ADMIN_PASSWORD  = (minimum 8 znaków)
+BOOTSTRAP_ADMIN_NAME      = Imię Nazwisko
+```
+
+Przy najbliższym starcie aplikacja utworzy z nich **jedno konto administratora**.
+
+Zabezpieczenie: kod odpala się **wyłącznie wtedy, gdy tabela użytkowników jest
+całkowicie pusta**. Nie nadpisze istniejącego konta, nie zmieni hasła i nie
+odtworzy konta usuniętego. Gdy pierwszy administrator już istnieje, w logu
+pojawia się `Bootstrap skipped` i zmienne można usunąć — nie mają dalej
+żadnego działania.
+
+Wszystkie kolejne konta zakłada administrator z panelu.
+
+### Konta testowe lokalnie
 
 W drugim okienku Terminala, gdy aplikacja działa:
 
