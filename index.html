@@ -5686,7 +5686,6 @@ async function adminLoadUsers(){
           +'<button onclick="adminPasswordLink(\''+u.id+'\')" style="background:transparent;border:1.5px solid #f7a800;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#a86800;">Link do hasła</button>'
           +(isLocked ? '<button onclick="adminUnlockUser(\''+u.id+'\')" style="background:#22c55e;color:#fff;border:none;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">🔓 Entsperren</button>' : '')
           +'<button onclick="adminToggleUser(\''+u.id+'\','+u.active+')" style="background:transparent;border:1.5px solid '+(u.active?'#fca5a5':'#86efac')+';border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;color:'+(u.active?'#ef4444':'#16a34a')+';">'+(u.active?'Deaktivieren':'Aktivieren')+'</button>'
-          +'<button onclick="adminDeleteUser(\''+u.id+'\')" style="background:#ef4444;color:#fff;border:none;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">✕</button>'
           +'</div>');
       cont.appendChild(row);
     });
@@ -5798,14 +5797,6 @@ async function adminToggleUser(id, currentActive){
   if(!confirm(currentActive ? 'Benutzer sperren?' : 'Benutzer aktivieren?')) return;
   try {
     await cvFetch('/users/'+id, { method:'PUT', body:JSON.stringify({ active: currentActive?0:1 }) });
-    adminLoadUsers();
-  } catch(e){ alert('Fehler'); }
-}
-
-async function adminDeleteUser(id){
-  if(!confirm('Benutzer dauerhaft löschen?')) return;
-  try {
-    await cvFetch('/users/'+id, { method:'DELETE' });
     adminLoadUsers();
   } catch(e){ alert('Fehler'); }
 }

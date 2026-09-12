@@ -715,13 +715,18 @@ app.put('/users/:id/unlock', requireAuth, requireAdmin, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Accounts are deactivated, not deleted. Decision of the product owner,
+// 12.09.2026: an offer is a business record that has to outlive the account
+// that made it, and deleting the account used to take its whole offer history
+// with it. Deactivation is the reversible operation that ends someone's
+// access; PUT /users/:id with { active: 0 } is how the panel does it, and
+// migration 004 makes the database refuse the deletion as well.
 app.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  if (req.params.id === req.user.id) return res.status(400).json({ error: 'Cannot delete your own account' });
-  try {
-    await stmt.userDelete.run(req.params.id);
-    secLog('USER_DELETED', null, req.ip, `ID: ${req.params.id}`);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  secLog('USER_DELETE_REFUSED', null, req.ip, `ID: ${req.params.id} by ${req.user.email}`);
+  res.status(405).json({
+    error: 'Konta nie usuwamy — dezaktywuj konto zamiast tego.',
+    hint:  'PUT /users/:id { "active": 0 }'
+  });
 });
 
 // GET /security-log — admin only
