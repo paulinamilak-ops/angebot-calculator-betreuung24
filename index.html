@@ -1170,14 +1170,323 @@ textarea.pp-ref-quote:hover {
 }
 .cal-month-item:hover{ background:#f7a800; color:#fff; }
 .cal-month-item.selected{ background:#0d1b3e; color:#fff; }
+
+/* ================== FRANCHISE TAB ================== */
+/* Namespaced with fr- so nothing here can reach the Angebot tab. */
+.fr-layout{
+  display:grid;
+  grid-template-columns:minmax(340px,420px) 1fr;
+  gap:22px;
+  align-items:start;
+}
+@media (max-width:1000px){ .fr-layout{ grid-template-columns:1fr; } }
+
+.fr-panel{
+  background:#fff;
+  border:1.5px solid var(--border-light);
+  border-radius:18px;
+  padding:18px 20px;
+}
+.fr-panel + .fr-panel{ margin-top:16px; }
+.fr-panel-title{
+  font-size:11px;
+  font-weight:800;
+  color:var(--navy);
+  letter-spacing:0.8px;
+  text-transform:uppercase;
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+.fr-panel-title svg{ width:15px; height:15px; flex-shrink:0; color:var(--orange); }
+
+.fr-field{ margin-bottom:10px; }
+.fr-field label{
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.fr-field input[type="text"],
+.fr-field input[type="date"],
+.fr-field input[type="number"],
+.fr-field select{
+  width:100%;
+  box-sizing:border-box;
+  border:1.5px solid var(--border-light);
+  border-radius:10px;
+  padding:9px 11px;
+  font-size:13px;
+  font-family:inherit;
+  color:var(--navy);
+  background:#fff;
+}
+.fr-field input:focus, .fr-field select:focus{
+  outline:none; border-color:var(--orange);
+}
+.fr-field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* package radio list */
+.fr-pakete{ display:flex; flex-direction:column; gap:6px; }
+.fr-paket{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:1.5px solid var(--border-light);
+  border-radius:10px;
+  padding:9px 12px;
+  cursor:pointer;
+  font-size:13px;
+  color:var(--navy);
+}
+.fr-paket:hover{ border-color:#c7ccd8; }
+.fr-paket.selected{ border-color:var(--orange); background:#fffaf0; }
+.fr-paket input{ accent-color:var(--navy); width:15px; height:15px; cursor:pointer; }
+.fr-paket .fr-paket-name{ flex:1; font-weight:700; }
+.fr-paket .fr-paket-price{ font-size:12px; color:#6b7280; white-space:nowrap; }
+
+/* internal figures — never printed */
+.fr-internal{
+  background:#f6f7fb;
+  border:1.5px solid #e3e6ef;
+  border-radius:12px;
+  padding:12px 14px;
+  margin-top:4px;
+}
+.fr-internal-row{
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:12px; color:#6b7280; padding:2px 0;
+}
+.fr-internal-row b{ color:var(--navy); font-weight:700; }
+
+.fr-provision-wrap{ position:relative; }
+.fr-provision-wrap input{ padding-right:74px !important; font-weight:700; }
+.fr-provision-unit{
+  position:absolute; right:11px; top:50%; transform:translateY(-50%);
+  font-size:11px; color:#9aa1b1; pointer-events:none; font-weight:600;
+}
+.fr-provision-wrap input.fr-warn{ border-color:#f7a800; background:#fffaf0; }
+.fr-provision-wrap input.fr-error{ border-color:#ef4444; background:#fef2f2; }
+.fr-msg{
+  display:none; font-size:11.5px; margin-top:5px; padding:6px 9px; border-radius:7px;
+  background:#fef2f2; color:#ef4444; font-weight:600;
+}
+.fr-msg.show{ display:block; }
+.fr-msg.warn{ background:#fffaf0; color:#a86800; }
+.fr-msg.ok{ background:#f0fdf4; color:#166534; }
+
+/* franchise partner total block */
+.fr-total{
+  margin-top:12px;
+  background:var(--navy);
+  border-radius:14px;
+  padding:13px 16px;
+  color:#fff;
+}
+.fr-total-label{
+  font-size:10px; font-weight:800; letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--orange); margin-bottom:5px;
+}
+.fr-total-month{ font-size:23px; font-weight:900; line-height:1.1; }
+.fr-total-day{ font-size:13px; font-weight:600; color:rgba(255,255,255,0.78); margin-top:2px; }
+
+/* segmented toggle */
+.fr-seg{ display:flex; gap:6px; }
+.fr-seg button{
+  flex:1; border:1.5px solid var(--border-light); background:#fff;
+  border-radius:10px; padding:8px 6px; font-size:12.5px; font-weight:700;
+  color:#6b7280; cursor:pointer; font-family:inherit;
+}
+.fr-seg button.active{ border-color:var(--navy); background:var(--navy); color:#fff; }
+
+.fr-check{
+  display:flex; align-items:center; gap:9px;
+  font-size:12.5px; color:var(--navy); padding:5px 0; cursor:pointer;
+}
+.fr-check input{ width:15px; height:15px; accent-color:var(--navy); cursor:pointer; flex-shrink:0; }
+.fr-check .fr-check-name{ flex:1; }
+.fr-check .fr-check-price{ font-size:11.5px; color:#6b7280; white-space:nowrap; }
+.fr-check input:disabled{ opacity:0.55; cursor:not-allowed; }
+.fr-check.locked{ color:#6b7280; }
+.fr-check.locked .fr-check-name::after{
+  content:" · fest bei 2 Personen"; font-size:10px; color:#9aa1b1; font-weight:600;
+}
+
+.fr-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.fr-btn{
+  display:inline-flex; align-items:center; gap:7px;
+  border:none; border-radius:999px; padding:10px 20px;
+  font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;
+}
+.fr-btn svg{ width:15px; height:15px; }
+.fr-btn-primary{ background:var(--navy); color:#fff; }
+.fr-btn-primary:hover{ background:#16295a; }
+.fr-btn-ghost{ background:transparent; border:1.5px solid var(--border-light); color:var(--navy); }
+.fr-btn-ghost:hover{ background:#f4f5f9; }
+.fr-btn-orange{ background:var(--orange); color:var(--navy); }
+.fr-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+/* ---------- OFFER PREVIEW (what the client sees) ---------- */
+.fr-offer{
+  background:#fff;
+  border:1.5px solid var(--border-light);
+  border-radius:18px;
+  padding:30px 34px;
+}
+.fr-offer-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; margin-bottom:18px;
+}
+.fr-offer-head img.fr-logo{ height:58px; width:auto; }
+.fr-offer-head img.fr-contact{ height:40px; width:auto; }
+.fr-offer-hero{
+  font-size:17px; font-weight:800; color:var(--navy); line-height:1.3;
+}
+.fr-offer-title{
+  font-size:30px; font-weight:900; color:var(--navy); margin-top:6px;
+}
+.fr-offer-for{
+  font-size:14px; color:#6b7280; font-weight:600; margin-top:2px;
+}
+.fr-offer-date{ font-size:12px; color:#9aa1b1; margin-top:2px; }
+
+.fr-offer-section{
+  font-size:11px; font-weight:800; color:var(--navy);
+  letter-spacing:1px; text-transform:uppercase;
+  margin:22px 0 8px;
+}
+.fr-price-card{
+  border:1.5px solid var(--border-light); border-radius:14px;
+  padding:16px 18px; display:flex; align-items:flex-end;
+  justify-content:space-between; gap:16px; flex-wrap:wrap;
+}
+.fr-price-name{ font-size:16px; font-weight:800; color:var(--navy); }
+.fr-price-nums{ display:flex; gap:26px; }
+.fr-price-num .v{ font-size:19px; font-weight:900; color:var(--navy); white-space:nowrap; }
+.fr-price-num .k{ font-size:10.5px; font-weight:700; color:#9aa1b1; text-transform:uppercase; letter-spacing:0.6px; }
+
+.fr-addon-list{ border:1.5px solid var(--border-light); border-radius:14px; overflow:hidden; }
+.fr-addon-line{
+  display:flex; justify-content:space-between; gap:14px;
+  padding:9px 18px; font-size:13px; color:var(--navy);
+  border-bottom:1px solid #f0f1f5;
+}
+.fr-addon-line:last-child{ border-bottom:none; }
+.fr-addon-line .fr-addon-amount{ font-weight:700; white-space:nowrap; }
+
+.fr-abzug-line{
+  display:flex; justify-content:space-between; gap:14px;
+  padding:7px 18px; font-size:13px; color:var(--navy);
+}
+.fr-abzug-line .v{ font-weight:700; color:#16a34a; white-space:nowrap; }
+.fr-abzug-box{ border:1.5px solid var(--border-light); border-radius:14px; padding:6px 0; }
+.fr-abzug-total{
+  border-top:1.5px solid var(--border-light); margin-top:4px; padding-top:9px;
+  display:flex; justify-content:space-between; padding-left:18px; padding-right:18px;
+  font-size:13.5px; font-weight:800; color:var(--navy);
+}
+
+.fr-gesamt{
+  margin-top:22px; background:var(--navy); border-radius:16px;
+  padding:18px 22px; color:#fff;
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:18px; flex-wrap:wrap;
+}
+.fr-gesamt-label{
+  font-size:11px; font-weight:800; letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--orange);
+}
+.fr-gesamt-nums{ display:flex; gap:28px; }
+.fr-gesamt-num .v{ font-size:24px; font-weight:900; white-space:nowrap; }
+.fr-gesamt-num .k{ font-size:10px; font-weight:700; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.7px; }
+.fr-gesamt-once{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.85); }
+
+.fr-hinweis{
+  margin-top:16px; font-size:10.5px; line-height:1.5; color:#6b7280;
+  border-left:3px solid var(--orange); padding-left:12px;
+}
+.fr-hinweis b{ color:var(--navy); }
+
+.fr-offer-footer{
+  margin-top:24px; padding-top:14px; border-top:1px solid var(--border-light);
+  font-size:10.5px; color:#9aa1b1; line-height:1.5; text-align:center;
+}
+
+/* ---------- MEINE ANGEBOTE ---------- */
+.fr-hist-search{ position:relative; margin-bottom:10px; }
+.fr-hist-search input{
+  width:100%; box-sizing:border-box; border:1.5px solid var(--border-light);
+  border-radius:10px; padding:9px 11px 9px 34px; font-size:13px; font-family:inherit; color:var(--navy);
+}
+.fr-hist-search svg{
+  position:absolute; left:11px; top:50%; transform:translateY(-50%);
+  width:14px; height:14px; color:#9aa1b1;
+}
+.fr-hist-list{ display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; }
+.fr-hist-item{
+  border:1.5px solid var(--border-light); border-radius:10px;
+  padding:9px 12px; display:flex; align-items:center; gap:10px;
+}
+.fr-hist-item.current{ border-color:var(--orange); background:#fffaf0; }
+.fr-hist-main{ flex:1; min-width:0; cursor:pointer; }
+.fr-hist-name{ font-size:12.5px; font-weight:700; color:var(--navy); }
+.fr-hist-meta{ font-size:11px; color:#9aa1b1; margin-top:1px; }
+.fr-hist-del{
+  background:transparent; border:1.5px solid #f0d0d0; color:#ef4444;
+  border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700;
+  cursor:pointer; font-family:inherit; flex-shrink:0;
+}
+.fr-hist-del:hover{ background:#fef2f2; }
+.fr-hist-confirm{ display:flex; gap:5px; flex-shrink:0; }
+.fr-hist-confirm button{
+  border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700;
+  cursor:pointer; font-family:inherit; border:none;
+}
+.fr-hist-confirm .yes{ background:#ef4444; color:#fff; }
+.fr-hist-confirm .no{ background:transparent; border:1.5px solid var(--border-light); color:#6b7280; }
+.fr-hist-empty{ text-align:center; color:#9aa1b1; font-size:12.5px; padding:18px 0; }
+
+/* ---- PRINT: FRANCHISE OFFER ---- */
+/* Only the client-facing offer reaches the paper. The input panel holds the
+   purchase price and the commission, so it is removed from the print flow
+   entirely — and the preview is fed final amounts only, never the components. */
+@media print{
+  #tab-franchise.print-active .fr-layout{ display:block !important; }
+  #tab-franchise.print-active .fr-col-input{ display:none !important; }
+  #tab-franchise.print-active .fr-history{ display:none !important; }
+  #tab-franchise.print-active .fr-offer{
+    border:none !important; border-radius:0 !important;
+    padding:0 !important; box-shadow:none !important;
+  }
+  #tab-franchise.print-active .fr-offer-head img.fr-logo{ height:66px !important; }
+  #tab-franchise.print-active .fr-offer-head img.fr-contact{ height:44px !important; }
+  #tab-franchise.print-active .fr-offer-hero{ font-size:14px !important; }
+  #tab-franchise.print-active .fr-offer-title{ font-size:24px !important; margin-top:4px !important; }
+  #tab-franchise.print-active .fr-offer-for{ font-size:12.5px !important; }
+  #tab-franchise.print-active .fr-offer-section{ margin:14px 0 6px !important; font-size:10px !important; }
+  #tab-franchise.print-active .fr-price-card{ padding:11px 14px !important; }
+  #tab-franchise.print-active .fr-price-name{ font-size:14px !important; }
+  #tab-franchise.print-active .fr-price-num .v{ font-size:16px !important; }
+  #tab-franchise.print-active .fr-addon-line,
+  #tab-franchise.print-active .fr-abzug-line{ padding:6px 14px !important; font-size:11.5px !important; }
+  #tab-franchise.print-active .fr-gesamt{ margin-top:14px !important; padding:13px 16px !important; }
+  #tab-franchise.print-active .fr-gesamt-num .v{ font-size:20px !important; }
+  #tab-franchise.print-active .fr-hinweis{ margin-top:11px !important; font-size:9px !important; }
+  #tab-franchise.print-active .fr-offer-footer{ margin-top:16px !important; font-size:9px !important; }
+  #tab-franchise.print-active .fr-offer{ page-break-inside:avoid; }
+}
+
 </style>
 </head>
 <body>
 
 <!-- TAB BAR -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('angebot', this)">📄 Angebot</button>
-  <button class="tab-btn" onclick="switchTab('profil', this)">📋 Kreator CV</button>
+  <button id="tab-btn-angebot" class="tab-btn active" onclick="switchTab('angebot', this)">📄 Angebot</button>
+  <button id="tab-btn-profil" class="tab-btn" onclick="switchTab('profil', this)">📋 Kreator CV</button>
+  <button id="tab-btn-franchise" class="tab-btn" style="display:none;" onclick="switchTab('franchise', this)">🏢 Franchise</button>
 </div>
 
 <!-- ===================== TAB 1: ANGEBOT ===================== -->
@@ -1669,6 +1978,226 @@ textarea.pp-ref-quote:hover {
 </div><!-- /container -->
 </div><!-- /tab-profil -->
 
+<!-- ===================== TAB 3: FRANCHISE ===================== -->
+<div id="tab-franchise" class="tab-content">
+<div class="container">
+  <div class="fr-layout">
+
+    <!-- ============ LEFT: INPUT PANEL (franchise partner only) ============ -->
+    <div class="fr-col-input">
+
+      <div class="fr-panel">
+        <div class="fr-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Kunde
+        </div>
+        <div class="fr-field-row">
+          <div class="fr-field">
+            <label for="fr-vorname">Vorname</label>
+            <input type="text" id="fr-vorname" autocomplete="off">
+          </div>
+          <div class="fr-field">
+            <label for="fr-nachname">Nachname</label>
+            <input type="text" id="fr-nachname" autocomplete="off">
+          </div>
+        </div>
+        <div class="fr-field">
+          <label for="fr-datum">Datum</label>
+          <input type="date" id="fr-datum">
+        </div>
+        <div class="fr-msg" id="fr-kunde-msg"></div>
+      </div>
+
+      <div class="fr-panel">
+        <div class="fr-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Paket
+        </div>
+        <div class="fr-pakete" id="fr-pakete"></div>
+
+        <div class="fr-internal">
+          <div class="fr-internal-row"><span>Einkaufspreis</span><b id="fr-base-monat">—</b></div>
+          <div class="fr-internal-row"><span>&nbsp;</span><b id="fr-base-tag">—</b></div>
+        </div>
+
+        <div class="fr-field" style="margin-top:12px;">
+          <label for="fr-provision">Provision</label>
+          <div class="fr-provision-wrap">
+            <input type="number" id="fr-provision" min="0" step="10" placeholder="0" inputmode="decimal">
+            <span class="fr-provision-unit">€ / Monat</span>
+          </div>
+          <div class="fr-msg" id="fr-provision-msg"></div>
+        </div>
+
+        <div class="fr-total">
+          <div class="fr-total-label">Total</div>
+          <div class="fr-total-month" id="fr-total-monat">—</div>
+          <div class="fr-total-day" id="fr-total-tag">—</div>
+        </div>
+      </div>
+
+      <div class="fr-panel">
+        <div class="fr-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Zu betreuende Personen
+        </div>
+        <div class="fr-seg" id="fr-personen">
+          <button type="button" data-persons="1" class="active">1 Person</button>
+          <button type="button" data-persons="2">2 Personen</button>
+        </div>
+      </div>
+
+      <div class="fr-panel">
+        <div class="fr-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Zusatzleistungen
+        </div>
+        <div id="fr-addons"></div>
+      </div>
+
+      <div class="fr-panel">
+        <div class="fr-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>
+          Abzüge
+        </div>
+        <label class="fr-check">
+          <input type="checkbox" id="fr-abzuege-toggle">
+          <span class="fr-check-name">Abzüge im Angebot zeigen</span>
+        </label>
+        <div id="fr-pflegegrad-wrap" style="display:none;margin-top:10px;">
+          <div class="fr-field">
+            <label for="fr-pflegegrad1">Pflegegrad — Person 1</label>
+            <select id="fr-pflegegrad1">
+              <option value="0">Pflegegrad 0</option>
+              <option value="1">Pflegegrad 1</option>
+              <option value="2" selected>Pflegegrad 2</option>
+              <option value="3">Pflegegrad 3</option>
+              <option value="4">Pflegegrad 4</option>
+              <option value="5">Pflegegrad 5</option>
+            </select>
+          </div>
+          <div class="fr-field" id="fr-pflegegrad2-field" style="display:none;">
+            <label for="fr-pflegegrad2">Pflegegrad — Person 2</label>
+            <select id="fr-pflegegrad2">
+              <option value="0">Pflegegrad 0</option>
+              <option value="1">Pflegegrad 1</option>
+              <option value="2" selected>Pflegegrad 2</option>
+              <option value="3">Pflegegrad 3</option>
+              <option value="4">Pflegegrad 4</option>
+              <option value="5">Pflegegrad 5</option>
+            </select>
+          </div>
+          <label class="fr-check">
+            <input type="checkbox" id="fr-verhinderung">
+            <span class="fr-check-name">Verhinderungspflege</span>
+            <span class="fr-check-price">294 € / Monat</span>
+          </label>
+          <label class="fr-check">
+            <input type="checkbox" id="fr-steuer">
+            <span class="fr-check-name">Steuerersparnis</span>
+            <span class="fr-check-price">333 € / Monat</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="fr-actions">
+        <button type="button" class="fr-btn fr-btn-primary" id="fr-save-btn" onclick="frSaveOffer()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span id="fr-save-label">Angebot speichern</span>
+        </button>
+        <button type="button" class="fr-btn fr-btn-ghost" onclick="frNewOffer()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Neu
+        </button>
+        <button type="button" class="fr-btn fr-btn-orange" onclick="frPrintOffer()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Drucken
+        </button>
+      </div>
+      <div class="fr-msg" id="fr-save-msg"></div>
+
+      <!-- ============ MEINE ANGEBOTE ============ -->
+      <div class="fr-panel fr-history" style="margin-top:16px;">
+        <div class="fr-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+          Meine Angebote
+        </div>
+        <div class="fr-hist-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="fr-hist-q" placeholder="Suche nach Name…" autocomplete="off">
+        </div>
+        <div class="fr-hist-list" id="fr-hist-list"></div>
+      </div>
+
+    </div>
+
+    <!-- ============ RIGHT: OFFER PREVIEW (what the client sees) ============ -->
+    <div class="fr-col-offer">
+      <div class="fr-offer" id="fr-offer">
+
+        <div class="fr-offer-head">
+          <img src="pflegeplus-logo.png" alt="Betreuung 24" class="fr-logo">
+          <img src="www adres.png" alt="Kontakt Betreuung 24" class="fr-contact">
+        </div>
+
+        <div class="fr-offer-hero">24-Stunden-Seniorenbetreuung im eigenen Zuhause</div>
+        <div class="fr-offer-title">Angebot</div>
+        <div class="fr-offer-for" id="fr-offer-for">für —</div>
+        <div class="fr-offer-date" id="fr-offer-date"></div>
+
+        <div class="fr-offer-section">Betreuungspaket</div>
+        <div class="fr-price-card">
+          <div class="fr-price-name" id="fr-offer-paket">—</div>
+          <div class="fr-price-nums">
+            <div class="fr-price-num"><div class="v" id="fr-offer-tag">—</div><div class="k">pro Tag</div></div>
+            <div class="fr-price-num"><div class="v" id="fr-offer-monat">—</div><div class="k">pro Monat</div></div>
+          </div>
+        </div>
+
+        <div id="fr-offer-addons-block" style="display:none;">
+          <div class="fr-offer-section">Zusatzleistungen</div>
+          <div class="fr-addon-list" id="fr-offer-addons"></div>
+        </div>
+
+        <div class="fr-gesamt">
+          <div>
+            <div class="fr-gesamt-label">Gesamt</div>
+            <div class="fr-gesamt-once" id="fr-offer-einmalig" style="display:none;"></div>
+          </div>
+          <div class="fr-gesamt-nums">
+            <div class="fr-gesamt-num"><div class="v" id="fr-offer-gesamt-tag">—</div><div class="k">pro Tag</div></div>
+            <div class="fr-gesamt-num"><div class="v" id="fr-offer-gesamt-monat">—</div><div class="k">pro Monat</div></div>
+          </div>
+        </div>
+
+        <div id="fr-offer-abzuege-block" style="display:none;">
+          <div class="fr-offer-section">Mögliche Abzüge</div>
+          <div class="fr-abzug-box">
+            <div id="fr-offer-abzuege"></div>
+            <div class="fr-abzug-total"><span>Summe der Abzüge</span><span id="fr-offer-abzuege-total">—</span></div>
+            <div class="fr-abzug-total" style="border-top:none;padding-top:2px;"><span>Verbleibende Kosten</span><span id="fr-offer-rest">—</span></div>
+          </div>
+        </div>
+
+        <div class="fr-hinweis">
+          <b>Hinweis:</b> 12 Tage im Jahr werden doppelt berechnet: Neujahr, Karfreitag,
+          Ostersonntag, Ostermontag, Erster Mai, Pfingstsonntag, Pfingstmontag,
+          Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.),
+          sowie der Erste und Zweite Weihnachtstag.
+        </div>
+
+        <div class="fr-offer-footer">
+          Betreuung 24 Sp. z o.o. &nbsp;|&nbsp; Al. Jerozolimskie 93, 02-001 Warschau, Polen
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</div><!-- /tab-franchise -->
+
+
 <!-- ===================== CV WIZARD ===================== -->
 <div id="wizard-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,0.65);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(3px);">
   <div id="wizard-modal" style="background:#fff;border-radius:24px;box-shadow:0 28px 80px rgba(0,0,0,0.3);width:min(620px,96vw);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
@@ -2026,6 +2555,9 @@ textarea.pp-ref-quote:hover {
 <script>
 /* ========= TAB SWITCHING ========= */
 function switchTab(tab, btn){
+  // Role gate. Hiding a button is cosmetic; this is what stops an account
+  // from opening a tab it is not entitled to from the browser console.
+  if(typeof _frAllowedTabs !== 'undefined' && _frAllowedTabs.indexOf(tab) === -1) return;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   btn.classList.add('active');
@@ -4909,14 +5441,28 @@ document.getElementById('wizard-overlay').addEventListener('click', function(e){
           <input id="admin-new-email" type="email"    placeholder="E-Mail"                   class="input" style="font-size:13px;">
           <input id="admin-new-pass"  type="password" placeholder="Passwort (min. 8 Zeichen)" class="input" style="font-size:13px;">
           <select id="admin-new-role" class="select" style="font-size:13px;">
-            <option value="user">Benutzer</option>
-            <option value="admin">Administrator</option>
+            <option value="user">Konsultant (Angebot)</option>
+            <option value="admin">Administrator (wszystko)</option>
+            <option value="franchise">Franczyzobiorca (tylko kalkulator franczyzowy)</option>
           </select>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:6px;line-height:1.4;">
+          Franczyzobiorca widzi wyłącznie kalkulator franczyzowy — bez Angebot,
+          bez Kreatora CV, bez bazy CV.
         </div>
         <div id="admin-add-msg" style="display:none;font-size:12px;margin-top:6px;padding:6px 10px;border-radius:6px;"></div>
         <button onclick="adminAddUser()" style="margin-top:10px;background:var(--navy);color:#fff;border:none;border-radius:20px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;">
           + Benutzer hinzufügen
         </button>
+      </div>
+      <div id="admin-link-box" style="display:none;padding:12px 20px;background:#fffaf0;border-bottom:1px solid #f0e0c0;flex-shrink:0;">
+        <div style="font-size:11px;font-weight:800;color:#a86800;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Link do ustawienia hasła — ważny 1 godzinę</div>
+        <div style="display:flex;gap:6px;">
+          <input id="admin-link-value" type="text" readonly class="input" style="flex:1;font-size:12px;font-family:monospace;">
+          <button id="admin-link-copy" onclick="adminCopyLink()" style="background:#f7a800;color:#0d1b3e;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">Kopiuj</button>
+          <button onclick="document.getElementById('admin-link-box').style.display='none'" style="background:transparent;border:1.5px solid #e2e2e2;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;color:#888;">×</button>
+        </div>
+        <div style="font-size:11px;color:#a86800;margin-top:6px;">Przekaż ten link użytkownikowi. Po ustawieniu hasła link przestaje działać.</div>
       </div>
       <div id="admin-users-list" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;"></div>
     </div>
@@ -4985,6 +5531,9 @@ function authSetUser(user, token){
   // Show admin button if admin
   var adminBtn = document.getElementById('user-bar-admin-btn');
   if(adminBtn) adminBtn.style.display = user.role === 'admin' ? 'inline-block' : 'none';
+
+  // Tabs visible to this role, and the starting tab.
+  if(typeof frApplyRole === 'function') frApplyRole(user.role);
 }
 
 async function authLogin(){
@@ -5113,6 +5662,7 @@ async function adminLoadUsers(){
     users.forEach(function(u){
       var isMe    = _authUser && u.id === _authUser.id;
       var isLocked= u.locked_until && new Date(u.locked_until) > new Date();
+      var roleMeta = ROLE_META[u.role] || ROLE_META.user;
       var row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1.5px solid '+(isLocked?'#fca5a5':u.active?'#e8eaf0':'#fca5a5')+';background:'+(isLocked?'#fef2f2':u.active?'#fff':'#fef2f2')+';';
       var statusBadge = isLocked
@@ -5121,13 +5671,19 @@ async function adminLoadUsers(){
           ? '<span style="font-size:10px;background:#fef2f2;color:#ef4444;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-weight:700;">Deaktiviert</span>'
           : '';
       row.innerHTML =
-        '<div style="width:36px;height:36px;border-radius:50%;background:'+(u.role==='admin'?'#f7a800':'#0d1b3e')+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;flex-shrink:0;">'+(u.role==='admin'?'A':'U')+'</div>'
+        '<div style="width:36px;height:36px;border-radius:50%;background:'+roleMeta.color+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;flex-shrink:0;">'+roleMeta.initial+'</div>'
         +'<div style="flex:1;min-width:0;">'
         +  '<div style="font-size:13px;font-weight:700;color:#0d1b3e;">'+u.name+' '+(isMe?'<span style="font-size:10px;color:#f7a800;">(Sie)</span>':'')+' '+statusBadge+'</div>'
-        +  '<div style="font-size:11px;color:#888;">'+u.email+' · '+(u.role==='admin'?'Admin':'Benutzer')+(u.login_attempts>0?' · <span style="color:#f59e0b;">'+u.login_attempts+' Fehlversuche</span>':'')+'</div>'
+        +  '<div style="font-size:11px;color:#888;">'+u.email+' · '+'<span style="color:'+roleMeta.color+';font-weight:700;">'+roleMeta.label+'</span>'+(u.login_attempts>0?' · <span style="color:#f59e0b;">'+u.login_attempts+' Fehlversuche</span>':'')+'</div>'
         +'</div>'
         +(isMe ? '' :
-          '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">'
+          '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">'
+          +'<select onchange="adminChangeRole(\''+u.id+'\', this.value)" title="Rola" style="border:1.5px solid #e2e2e2;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:700;color:#0d1b3e;cursor:pointer;background:#fff;">'
+          +  '<option value="user"'+(u.role==='user'?' selected':'')+'>Konsultant</option>'
+          +  '<option value="admin"'+(u.role==='admin'?' selected':'')+'>Administrator</option>'
+          +  '<option value="franchise"'+(u.role==='franchise'?' selected':'')+'>Franczyzobiorca</option>'
+          +'</select>'
+          +'<button onclick="adminPasswordLink(\''+u.id+'\')" style="background:transparent;border:1.5px solid #f7a800;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#a86800;">Link do hasła</button>'
           +(isLocked ? '<button onclick="adminUnlockUser(\''+u.id+'\')" style="background:#22c55e;color:#fff;border:none;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">🔓 Entsperren</button>' : '')
           +'<button onclick="adminToggleUser(\''+u.id+'\','+u.active+')" style="background:transparent;border:1.5px solid '+(u.active?'#fca5a5':'#86efac')+';border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;color:'+(u.active?'#ef4444':'#16a34a')+';">'+(u.active?'Deaktivieren':'Aktivieren')+'</button>'
           +'<button onclick="adminDeleteUser(\''+u.id+'\')" style="background:#ef4444;color:#fff;border:none;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">✕</button>'
@@ -5167,6 +5723,47 @@ async function adminLoadSecurityLog(){
   } catch(e){
     cont.innerHTML = '<div style="text-align:center;color:#ef4444;padding:16px;">❌ Verbindungsfehler</div>';
   }
+}
+
+// Label, colour and avatar letter per role, used by the user list.
+var ROLE_META = {
+  admin:     { label:'Administrator',   color:'#f7a800', initial:'A' },
+  user:      { label:'Konsultant',      color:'#0d1b3e', initial:'U' },
+  franchise: { label:'Franczyzobiorca', color:'#2563eb', initial:'F' }
+};
+
+async function adminChangeRole(id, role){
+  try {
+    var r = await cvFetch('/users/'+id, { method:'PUT', body:JSON.stringify({ role: role }) });
+    var d = await r.json();
+    if(!r.ok) alert(d.error || 'Zmiana roli nie powiodła się');
+    adminLoadUsers();
+  } catch(e){ alert('Błąd połączenia'); adminLoadUsers(); }
+}
+
+// No SMTP on the test environment, so the link is shown to the administrator
+// to copy and pass on. Same token mechanism as "password forgotten": one
+// hour, single use. The URL is built here, from the address the
+// administrator is actually working on.
+async function adminPasswordLink(id){
+  var box = document.getElementById('admin-link-box');
+  var out = document.getElementById('admin-link-value');
+  try {
+    var r = await cvFetch('/users/'+id+'/reset-link', { method:'POST', body:'{}' });
+    var d = await r.json();
+    if(!r.ok){ alert(d.error || 'Nie udało się wygenerować linku'); return; }
+    out.value = window.location.origin + window.location.pathname + '?reset=' + d.token;
+    box.style.display = 'block';
+    out.focus(); out.select();
+  } catch(e){ alert('Błąd połączenia'); }
+}
+
+function adminCopyLink(){
+  var out = document.getElementById('admin-link-value');
+  out.focus(); out.select();
+  try { document.execCommand('copy'); } catch(e){}
+  var btn = document.getElementById('admin-link-copy');
+  if(btn){ var t = btn.textContent; btn.textContent = 'Skopiowano'; setTimeout(function(){ btn.textContent = t; }, 1600); }
 }
 
 async function adminUnlockUser(id){
@@ -5218,5 +5815,538 @@ document.addEventListener('DOMContentLoaded', function(){
   authInit();
 });
 </script>
+
+<script>
+/* ================== FRANCHISE CALCULATOR ==================
+   The figures the franchise partner types (purchase price, commission) never
+   reach the offer preview: only final amounts are written into it, and the
+   whole input column is removed from the print flow on top of that.
+   Amounts are recomputed on the server when an offer is saved, so a stored
+   offer can never disagree with the price list.                            */
+
+/* Licence partner price list, 18.05.2026. Monthly price is the binding
+   figure; the month-to-day divisor is fixed per package and derived from the
+   list itself, so a zero commission reproduces 77 / 93 / 107 / 120 exactly.
+   Overwritten at runtime by GET /franchise/pricing - this copy only keeps the
+   tab usable if that call has not returned yet. */
+var FR_PRODUCTS = {
+  bronze: { monat:2300, tag:77,  label:'Seniorenbetreuung Bronze' },
+  silber: { monat:2800, tag:93,  label:'Seniorenbetreuung Silber' },
+  gold:   { monat:3200, tag:107, label:'Seniorenbetreuung Gold'   },
+  platin: { monat:3600, tag:120, label:'Seniorenbetreuung Platin' }
+};
+var FR_ADDONS = {
+  express:         { amount:300, per:'once', label:'Express — Start innerhalb von 4 Werktagen' },
+  fuehrerschein:   { amount:8,   per:'day',  label:'Führerschein' },
+  zweitepersonhh:  { amount:4,   per:'day',  label:'Zweite Person im Haushalt' },
+  zweitepersonzb:  { amount:15,  per:'day',  label:'Zweite zu betreuende Person' },
+  sonderbetreuung: { amount:10,  per:'day',  label:'Sonderbetreuung' }
+};
+var FR_ADDON_ORDER = ['express','fuehrerschein','zweitepersonhh','zweitepersonzb','sonderbetreuung'];
+var FR_DAYS        = 30;
+var FR_PFLEGEGELD  = { 0:0, 1:0, 2:347, 3:599, 4:800, 5:990 };
+var FR_VERHIND     = 294;
+var FR_STEUER      = 333;
+
+var _frPaket        = 'silber';
+var _frPersons      = 1;
+var _frCurrentId    = null;   /* id of the offer being edited, null = new */
+var _frCurrentKey   = '';     /* client identity of that offer */
+var _frPricingReady = false;
+var _frHistTimer    = null;
+var _frDeleteArmed  = null;
+var _frHistCache    = [];
+
+function frEuro(v){
+  return (Number(v)||0).toLocaleString('de-DE',
+    { style:'currency', currency:'EUR', minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function frSet(id, txt){ var el=document.getElementById(id); if(el) el.textContent = txt; }
+function frShowMsg(id, text, kind){
+  var el = document.getElementById(id); if(!el) return;
+  if(!text){ el.className='fr-msg'; el.textContent=''; return; }
+  el.className = 'fr-msg show' + (kind ? ' '+kind : '');
+  el.textContent = text;
+}
+function frDateDE(iso){
+  if(!iso) return '';
+  var p = String(iso).slice(0,10).split('-');
+  return p.length===3 ? p[2]+'.'+p[1]+'.'+p[0] : iso;
+}
+
+/* ---------- the two dynamic lists ---------- */
+function frRenderPakete(){
+  var box = document.getElementById('fr-pakete'); if(!box) return;
+  box.innerHTML = '';
+  Object.keys(FR_PRODUCTS).forEach(function(key){
+    var p = FR_PRODUCTS[key];
+    var lab = document.createElement('label');
+    lab.className = 'fr-paket' + (key===_frPaket ? ' selected' : '');
+    lab.setAttribute('data-paket', key);
+    lab.innerHTML =
+      '<input type="radio" name="fr-paket" value="'+key+'"'+(key===_frPaket?' checked':'')+'>'
+      +'<span class="fr-paket-name">'+p.label.replace('Seniorenbetreuung ','')+'</span>'
+      +'<span class="fr-paket-price">'+frEuro(p.monat)+' / Monat</span>';
+    lab.querySelector('input').addEventListener('change', function(){
+      _frPaket = key; frRenderPakete(); frRecalc();
+    });
+    box.appendChild(lab);
+  });
+}
+
+function frRenderAddons(){
+  var box = document.getElementById('fr-addons'); if(!box) return;
+  var checked = {};
+  FR_ADDON_ORDER.forEach(function(k){
+    var el = document.getElementById('fr-addon-'+k);
+    if(el) checked[k] = el.checked;
+  });
+  box.innerHTML = '';
+  FR_ADDON_ORDER.forEach(function(key){
+    var a = FR_ADDONS[key]; if(!a) return;
+    var locked = (key==='zweitepersonzb' && _frPersons===2);
+    var lab = document.createElement('label');
+    lab.className = 'fr-check' + (locked ? ' locked' : '');
+    lab.innerHTML =
+      '<input type="checkbox" id="fr-addon-'+key+'" data-addon="'+key+'">'
+      +'<span class="fr-check-name">'+a.label+'</span>'
+      +'<span class="fr-check-price">'+frEuro(a.amount)+(a.per==='once'?' einmalig':' / Tag')+'</span>';
+    var cb = lab.querySelector('input');
+    cb.checked  = locked ? true : !!checked[key];
+    cb.disabled = locked;
+    cb.addEventListener('change', frRecalc);
+    box.appendChild(lab);
+  });
+}
+
+function frSelectedAddons(){
+  var out = [];
+  FR_ADDON_ORDER.forEach(function(k){
+    var el = document.getElementById('fr-addon-'+k);
+    if(el && el.checked) out.push(k);
+  });
+  return out;
+}
+
+/* ---------- the calculation ---------- */
+function frReadProvision(){
+  var input = document.getElementById('fr-provision');
+  if(!input) return { value:0, error:null, warn:false };
+  var raw = String(input.value||'').trim();
+  input.classList.remove('fr-warn','fr-error');
+  if(raw === '') return { value:0, error:null, warn:false };
+  var n = Number(raw.replace(',','.'));
+  if(!isFinite(n)){ input.classList.add('fr-error'); return { value:null, error:'Bitte eine Zahl eingeben.', warn:false }; }
+  if(n < 0){ input.classList.add('fr-error'); return { value:null, error:'Die Provision darf nicht negativ sein.', warn:false }; }
+  if(n > 10000){ input.classList.add('fr-warn'); return { value:n, error:null, warn:true }; }
+  return { value:n, error:null, warn:false };
+}
+
+function frRecalc(){
+  var product = FR_PRODUCTS[_frPaket]; if(!product) return;
+  var divisor = product.monat / product.tag;
+
+  var prov = frReadProvision();
+  if(prov.error){
+    frShowMsg('fr-provision-msg', prov.error);
+    return;                       /* leave the last valid figures on screen */
+  }
+  frShowMsg('fr-provision-msg',
+    prov.warn ? 'Ungewöhnlich hohe Provision — bitte prüfen.' : '',
+    prov.warn ? 'warn' : '');
+
+  var baseMonat  = product.monat;
+  var totalMonat = baseMonat + prov.value;
+  var totalTag   = totalMonat / divisor;
+
+  var perDay = 0, once = 0, lines = [];
+  frSelectedAddons().forEach(function(k){
+    var a = FR_ADDONS[k]; if(!a) return;
+    if(a.per === 'day'){ perDay += a.amount; lines.push({ label:a.label, amount:frEuro(a.amount)+' / Tag' }); }
+    else               { once   += a.amount; lines.push({ label:a.label, amount:frEuro(a.amount)+' einmalig' }); }
+  });
+
+  var gesamtTag   = totalTag   + perDay;
+  var gesamtMonat = totalMonat + perDay * FR_DAYS;
+
+  /* --- input panel: figures only the franchise partner sees --- */
+  frSet('fr-base-monat', frEuro(baseMonat) + ' / Monat');
+  frSet('fr-base-tag',   frEuro(baseMonat/divisor) + ' / Tag');
+  frSet('fr-total-monat', frEuro(totalMonat) + ' / Monat');
+  frSet('fr-total-tag',   frEuro(totalTag) + ' / Tag');
+
+  /* --- offer preview: final amounts only --- */
+  var vor = (document.getElementById('fr-vorname')||{}).value || '';
+  var nach= (document.getElementById('fr-nachname')||{}).value || '';
+  var dat = (document.getElementById('fr-datum')||{}).value || '';
+  var who = (vor.trim()+' '+nach.trim()).trim();
+  frSet('fr-offer-for', who ? 'für '+who : 'für —');
+  frSet('fr-offer-date', dat ? frDateDE(dat) : '');
+
+  frSet('fr-offer-paket', product.label);
+  frSet('fr-offer-tag',   frEuro(totalTag));
+  frSet('fr-offer-monat', frEuro(totalMonat));
+
+  var addonBlock = document.getElementById('fr-offer-addons-block');
+  var addonList  = document.getElementById('fr-offer-addons');
+  if(addonBlock && addonList){
+    if(lines.length){
+      addonBlock.style.display = 'block';
+      addonList.innerHTML = lines.map(function(l){
+        return '<div class="fr-addon-line"><span>'+l.label+'</span><span class="fr-addon-amount">'+l.amount+'</span></div>';
+      }).join('');
+    } else { addonBlock.style.display = 'none'; addonList.innerHTML = ''; }
+  }
+
+  frSet('fr-offer-gesamt-tag',   frEuro(gesamtTag));
+  frSet('fr-offer-gesamt-monat', frEuro(gesamtMonat));
+  var onceEl = document.getElementById('fr-offer-einmalig');
+  if(onceEl){
+    if(once > 0){ onceEl.style.display='block'; onceEl.textContent = 'zzgl. '+frEuro(once)+' einmalig'; }
+    else        { onceEl.style.display='none';  onceEl.textContent = ''; }
+  }
+
+  frRenderAbzuege(gesamtMonat);
+}
+
+function frRenderAbzuege(gesamtMonat){
+  var on    = !!(document.getElementById('fr-abzuege-toggle')||{}).checked;
+  var block = document.getElementById('fr-offer-abzuege-block');
+  var wrap  = document.getElementById('fr-pflegegrad-wrap');
+  var pg2   = document.getElementById('fr-pflegegrad2-field');
+  if(wrap) wrap.style.display = on ? 'block' : 'none';
+  if(pg2)  pg2.style.display  = (on && _frPersons===2) ? 'block' : 'none';
+  if(!block) return;
+  if(!on){ block.style.display = 'none'; return; }
+
+  var rows = [], sum = 0;
+  var g1 = Number((document.getElementById('fr-pflegegrad1')||{}).value || 0);
+  var a1 = FR_PFLEGEGELD[g1] || 0;
+  if(a1 > 0){ rows.push(['Pflegegeld — Pflegegrad '+g1, a1]); sum += a1; }
+  if(_frPersons === 2){
+    var g2 = Number((document.getElementById('fr-pflegegrad2')||{}).value || 0);
+    var a2 = FR_PFLEGEGELD[g2] || 0;
+    if(a2 > 0){ rows.push(['Pflegegeld — 2. Person, Pflegegrad '+g2, a2]); sum += a2; }
+  }
+  if((document.getElementById('fr-verhinderung')||{}).checked){ rows.push(['Verhinderungspflege', FR_VERHIND]); sum += FR_VERHIND; }
+  if((document.getElementById('fr-steuer')||{}).checked){ rows.push(['Steuerersparnis', FR_STEUER]); sum += FR_STEUER; }
+
+  block.style.display = 'block';
+  var listEl = document.getElementById('fr-offer-abzuege');
+  if(listEl){
+    listEl.innerHTML = rows.map(function(r){
+      return '<div class="fr-abzug-line"><span>'+r[0]+'</span><span class="v">− '+frEuro(r[1])+'</span></div>';
+    }).join('') || '<div class="fr-abzug-line"><span>Keine Abzüge ausgewählt</span><span class="v">− '+frEuro(0)+'</span></div>';
+  }
+  frSet('fr-offer-abzuege-total', '− ' + frEuro(sum));
+  var rest = gesamtMonat - sum; if(rest < 0) rest = 0;
+  frSet('fr-offer-rest', frEuro(rest) + ' / Monat');
+}
+
+/* ---------- persons toggle ---------- */
+function frSetPersons(n){
+  var next = (Number(n) === 2) ? 2 : 1;
+  /* Leaving "2 Personen": the 15 EUR/day add-on was switched on and locked by
+     that choice, so it is released together with it. Without this it stayed
+     ticked and kept 450 EUR/month in the offer for a single patient. */
+  if(_frPersons === 2 && next === 1){
+    var zb = document.getElementById('fr-addon-zweitepersonzb');
+    if(zb) zb.checked = false;
+  }
+  _frPersons = next;
+  var seg = document.getElementById('fr-personen');
+  if(seg) Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+    b.classList.toggle('active', Number(b.getAttribute('data-persons')) === _frPersons);
+  });
+  frRenderAddons();
+  frRecalc();
+}
+
+/* ---------- print ---------- */
+function frPrintOffer(){
+  document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active','print-active'); });
+  var t = document.getElementById('tab-franchise');
+  t.classList.add('print-active');
+  window.print();
+  t.classList.remove('print-active');
+  t.classList.add('active');
+}
+
+/* ---------- save / load / delete ---------- */
+function frClientKey(){
+  return [ (document.getElementById('fr-vorname')||{}).value||'',
+           (document.getElementById('fr-nachname')||{}).value||'',
+           (document.getElementById('fr-datum')||{}).value||'' ]
+         .map(function(s){ return String(s).trim().toLowerCase(); }).join('|');
+}
+
+function frCollect(){
+  return {
+    client_first_name: ((document.getElementById('fr-vorname')||{}).value||'').trim(),
+    client_last_name:  ((document.getElementById('fr-nachname')||{}).value||'').trim(),
+    offer_date:        ((document.getElementById('fr-datum')||{}).value||'').trim(),
+    paket:             _frPaket,
+    provision_monat:   frReadProvision().value || 0,
+    persons:           _frPersons,
+    addons:            frSelectedAddons(),
+    deductions_shown:  !!(document.getElementById('fr-abzuege-toggle')||{}).checked,
+    pflegegrad_1:      (document.getElementById('fr-pflegegrad1')||{}).value,
+    pflegegrad_2:      _frPersons===2 ? (document.getElementById('fr-pflegegrad2')||{}).value : null
+  };
+}
+
+async function frSaveOffer(){
+  var body = frCollect();
+  if(!body.client_first_name || !body.client_last_name || !body.offer_date){
+    frShowMsg('fr-kunde-msg', 'Bitte Vorname, Nachname und Datum des Kunden eingeben.');
+    frShowMsg('fr-save-msg', 'Bitte Vorname, Nachname und Datum des Kunden eingeben.');
+    return;
+  }
+  frShowMsg('fr-kunde-msg', '');
+  var prov = frReadProvision();
+  if(prov.error){ frShowMsg('fr-save-msg', prov.error); return; }
+
+  /* Editing an offer but the client changed: that is a new offer. */
+  var isUpdate = !!(_frCurrentId && _frCurrentKey === frClientKey());
+  var btn = document.getElementById('fr-save-btn');
+  if(btn) btn.disabled = true;
+  try{
+    var r = await cvFetch('/franchise/offers' + (isUpdate ? '/'+_frCurrentId : ''),
+      { method: isUpdate ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    var data = await r.json();
+    if(!r.ok){ frShowMsg('fr-save-msg', data.error || 'Speichern fehlgeschlagen.'); return; }
+    _frCurrentId  = data.id;
+    _frCurrentKey = frClientKey();
+    frShowMsg('fr-save-msg', isUpdate ? '✓ Angebot aktualisiert.' : '✓ Angebot gespeichert.', 'ok');
+    frSetSaveLabel();
+    frLoadHistory();
+  } catch(e){
+    frShowMsg('fr-save-msg', 'Verbindungsfehler — Server nicht erreichbar.');
+  } finally {
+    if(btn) btn.disabled = false;
+  }
+}
+
+function frSetSaveLabel(){
+  frSet('fr-save-label', _frCurrentId ? 'Angebot aktualisieren' : 'Angebot speichern');
+}
+
+function frNewOffer(){
+  _frCurrentId = null; _frCurrentKey = '';
+  ['fr-vorname','fr-nachname'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  var d = document.getElementById('fr-datum'); if(d) d.value = new Date().toISOString().slice(0,10);
+  var p = document.getElementById('fr-provision'); if(p) p.value = '';
+  _frPaket = 'silber';
+  var t = document.getElementById('fr-abzuege-toggle'); if(t) t.checked = false;
+  ['fr-verhinderung','fr-steuer'].forEach(function(id){ var e=document.getElementById(id); if(e) e.checked=false; });
+  var g1 = document.getElementById('fr-pflegegrad1'); if(g1) g1.value = '2';
+  var g2 = document.getElementById('fr-pflegegrad2'); if(g2) g2.value = '2';
+  frShowMsg('fr-save-msg',''); frShowMsg('fr-kunde-msg',''); frShowMsg('fr-provision-msg','');
+  frRenderPakete();
+  frSetPersons(1);
+  frSetSaveLabel();
+  frLoadHistory();
+}
+
+async function frOpenOffer(id){
+  try{
+    var r = await cvFetch('/franchise/offers/'+id);
+    if(!r.ok){ frShowMsg('fr-save-msg','Angebot nicht gefunden.'); return; }
+    var o = await r.json();
+    document.getElementById('fr-vorname').value   = o.client_first_name || '';
+    document.getElementById('fr-nachname').value  = o.client_last_name  || '';
+    document.getElementById('fr-datum').value     = String(o.offer_date||'').slice(0,10);
+    document.getElementById('fr-provision').value = Number(o.provision_monat) || '';
+    _frPaket = o.paket || 'silber';
+    frRenderPakete();
+
+    var list = o.addons;
+    if(typeof list === 'string'){ try{ list = JSON.parse(list); }catch(e){ list = []; } }
+    if(!Array.isArray(list)) list = [];
+
+    _frPersons = Number(o.persons)===2 ? 2 : 1;
+    var seg = document.getElementById('fr-personen');
+    if(seg) Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+      b.classList.toggle('active', Number(b.getAttribute('data-persons'))===_frPersons);
+    });
+    frRenderAddons();
+    FR_ADDON_ORDER.forEach(function(k){
+      var cb = document.getElementById('fr-addon-'+k);
+      if(cb && !cb.disabled) cb.checked = list.indexOf(k) !== -1;
+    });
+
+    var tgl = document.getElementById('fr-abzuege-toggle');
+    if(tgl) tgl.checked = !!o.deductions_shown;
+    var g1 = document.getElementById('fr-pflegegrad1');
+    if(g1 && o.pflegegrad_1 !== null && o.pflegegrad_1 !== undefined) g1.value = String(o.pflegegrad_1);
+    var g2 = document.getElementById('fr-pflegegrad2');
+    if(g2 && o.pflegegrad_2 !== null && o.pflegegrad_2 !== undefined) g2.value = String(o.pflegegrad_2);
+
+    _frCurrentId  = o.id;
+    _frCurrentKey = frClientKey();
+    frSetSaveLabel();
+    frShowMsg('fr-save-msg','');
+    frRecalc();
+    frLoadHistory();
+  } catch(e){ frShowMsg('fr-save-msg','Verbindungsfehler — Server nicht erreichbar.'); }
+}
+
+async function frDeleteOffer(id){
+  try{
+    var r = await cvFetch('/franchise/offers/'+id, { method:'DELETE' });
+    if(!r.ok){ frShowMsg('fr-save-msg','Löschen fehlgeschlagen.'); return; }
+    if(_frCurrentId === id){ _frCurrentId = null; _frCurrentKey = ''; frSetSaveLabel(); }
+    _frDeleteArmed = null;
+    frLoadHistory();
+  } catch(e){ frShowMsg('fr-save-msg','Verbindungsfehler — Server nicht erreichbar.'); }
+}
+
+function frArmDelete(id){ _frDeleteArmed = id; frRenderHistory(_frHistCache); }
+function frCancelDelete(){ _frDeleteArmed = null; frRenderHistory(_frHistCache); }
+
+async function frLoadHistory(){
+  var q   = ((document.getElementById('fr-hist-q')||{}).value||'').trim();
+  var url = q ? '/franchise/offers/search?q='+encodeURIComponent(q) : '/franchise/offers';
+  try{
+    var r = await cvFetch(url);
+    if(!r.ok){ _frHistCache = []; frRenderHistory([]); return; }
+    _frHistCache = await r.json();
+    frRenderHistory(_frHistCache);
+  } catch(e){ _frHistCache = []; frRenderHistory([]); }
+}
+
+function frRenderHistory(rows){
+  var box = document.getElementById('fr-hist-list'); if(!box) return;
+  box.innerHTML = '';
+  if(!rows || !rows.length){
+    box.innerHTML = '<div class="fr-hist-empty">Noch keine Angebote gespeichert.</div>';
+    return;
+  }
+  rows.forEach(function(o){
+    var item = document.createElement('div');
+    item.className = 'fr-hist-item' + (o.id === _frCurrentId ? ' current' : '');
+    var title = (o.client_last_name||'') + ', ' + (o.client_first_name||'') + ' — ' + frDateDE(o.offer_date);
+    var prod  = FR_PRODUCTS[o.paket] ? FR_PRODUCTS[o.paket].label.replace('Seniorenbetreuung ','') : (o.paket||'');
+    var owner = o.owner_email ? ' · ' + o.owner_email : '';
+
+    var main = document.createElement('div');
+    main.className = 'fr-hist-main';
+    main.innerHTML = '<div class="fr-hist-name"></div><div class="fr-hist-meta"></div>';
+    main.querySelector('.fr-hist-name').textContent = title;
+    main.querySelector('.fr-hist-meta').textContent = prod + ' · ' + frEuro(o.total_monat) + ' / Monat' + owner;
+    main.addEventListener('click', function(){ frOpenOffer(o.id); });
+    item.appendChild(main);
+
+    if(_frDeleteArmed === o.id){
+      var conf = document.createElement('div');
+      conf.className = 'fr-hist-confirm';
+      var yes = document.createElement('button'); yes.className='yes'; yes.textContent='Löschen';
+      yes.addEventListener('click', function(){ frDeleteOffer(o.id); });
+      var no = document.createElement('button'); no.className='no'; no.textContent='Abbrechen';
+      no.addEventListener('click', frCancelDelete);
+      conf.appendChild(yes); conf.appendChild(no);
+      item.appendChild(conf);
+    } else {
+      var del = document.createElement('button');
+      del.className = 'fr-hist-del'; del.textContent = 'Löschen';
+      del.addEventListener('click', function(){ frArmDelete(o.id); });
+      item.appendChild(del);
+    }
+    box.appendChild(item);
+  });
+}
+
+/* ---------- pricing from the server ---------- */
+async function frLoadPricing(){
+  if(_frPricingReady) return;
+  try{
+    var r = await cvFetch('/franchise/pricing');
+    if(!r.ok) return;
+    var d = await r.json();
+    if(d && d.products){
+      Object.keys(d.products).forEach(function(k){
+        var s = d.products[k];
+        FR_PRODUCTS[k] = { monat:s.monat, tag:s.tag, label:s.label };
+      });
+    }
+    if(d && d.addons){
+      Object.keys(d.addons).forEach(function(k){
+        if(FR_ADDONS[k]) FR_ADDONS[k].amount = d.addons[k].amount;
+      });
+    }
+    if(d && d.days_in_month) FR_DAYS = d.days_in_month;
+    _frPricingReady = true;
+    frRenderPakete(); frRenderAddons(); frRecalc();
+  } catch(e){ /* keep the built-in copy */ }
+}
+
+/* ---------- role-driven interface ---------- */
+
+/* The CV module is switched off in the interface by decision of the product
+   owner, 12.09.2026. Nothing is deleted: the Kreator CV tab, the CV database
+   and every /cv/ endpoint stay exactly as they were, they are simply not
+   reachable from the tab bar. Setting this back to true restores the tab for
+   admin and user accounts with no other change. */
+var FR_CV_ENABLED = false;
+
+var FR_TABS_BY_ROLE = {
+  admin:     FR_CV_ENABLED ? ['angebot','profil','franchise'] : ['angebot','franchise'],
+  user:      FR_CV_ENABLED ? ['angebot','profil']             : ['angebot'],
+  franchise: ['franchise']
+};
+var _frAllowedTabs = ['angebot'];
+
+function frApplyRole(role){
+  _frAllowedTabs = FR_TABS_BY_ROLE[role] || FR_TABS_BY_ROLE.user;
+  ['angebot','profil','franchise'].forEach(function(t){
+    var btn = document.getElementById('tab-btn-'+t);
+    if(btn) btn.style.display = _frAllowedTabs.indexOf(t) === -1 ? 'none' : '';
+  });
+  var first    = _frAllowedTabs[0];
+  var firstBtn = document.getElementById('tab-btn-'+first);
+  if(firstBtn) switchTab(first, firstBtn);
+  /* One tab left: the bar itself is noise. */
+  var bar = document.querySelector('.tab-bar');
+  if(bar) bar.style.display = _frAllowedTabs.length < 2 ? 'none' : '';
+  if(_frAllowedTabs.indexOf('franchise') !== -1) frInitFranchise();
+}
+
+var _frInited = false;
+function frInitFranchise(){
+  if(_frInited) return;
+  _frInited = true;
+  var d = document.getElementById('fr-datum');
+  if(d && !d.value) d.value = new Date().toISOString().slice(0,10);
+
+  frRenderPakete();
+  frRenderAddons();
+
+  var seg = document.getElementById('fr-personen');
+  if(seg) Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){ frSetPersons(b.getAttribute('data-persons')); });
+  });
+
+  ['fr-vorname','fr-nachname','fr-datum','fr-provision'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('input', frRecalc);
+  });
+  ['fr-abzuege-toggle','fr-verhinderung','fr-steuer','fr-pflegegrad1','fr-pflegegrad2'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('change', frRecalc);
+  });
+
+  var q = document.getElementById('fr-hist-q');
+  if(q) q.addEventListener('input', function(){
+    clearTimeout(_frHistTimer);
+    _frHistTimer = setTimeout(frLoadHistory, 250);
+  });
+
+  frSetSaveLabel();
+  frRecalc();
+  frLoadPricing();
+  frLoadHistory();
+}
+</script>
+
 </body>
 </html>

@@ -623,6 +623,25 @@ app.post('/auth/reset', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /users/:id/reset-link  (admin only)
+// The administrator hands a user a link to set their own password rather
+// than inventing one for them. Same token table and the same one-hour
+// lifetime as "password forgotten"; the link is returned to the caller
+// instead of being mailed, because the test environment has no SMTP.
+// The caller builds the full URL from its own origin, so the link always
+// points at the environment the administrator is actually working in.
+app.post('/users/:id/reset-link', requireAuth, requireAdmin, async (req, res) => {
+  const user = await stmt.userById.get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const token   = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + CONFIG.RESET_TOKEN_HOURS * 3600000).toISOString();
+  await stmt.resetInsert.run({ token, email: user.email, expires });
+  secLog('PASSWORD_RESET_LINK_ISSUED', user.email, req.ip, `Issued by: ${req.user.email}`);
+
+  res.json({ ok: true, token, expires_in_hours: CONFIG.RESET_TOKEN_HOURS });
+});
+
 // GET /auth/me
 app.get('/auth/me', requireAuth, async (req, res) => {
   const user = await stmt.userById.get(req.user.id);
@@ -659,12 +678,32 @@ app.post('/users', requireAuth, requireAdmin, async (req, res) => {
 });
 
 app.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { name, role, active } = req.body;
   try {
-    await stmt.userUpdate.run({ id: req.params.id, name: name||'', role: role||'user', active: active?1:0 });
-    secLog('USER_UPDATED', null, req.ip, `ID: ${req.params.id} active:${active} role:${role}`);
+    // Partial update: the body carries only the fields that should change,
+    // everything else keeps its stored value. This used to write all three
+    // columns unconditionally with defaults name||'' and role||'user', so a
+    // request sending just { active } blanked the account name and demoted
+    // an administrator to a plain user.
+    const current = await stmt.userById.get(req.params.id);
+    if (!current) return res.status(404).json({ error: 'User not found' });
+
+    const b    = req.body || {};
+    const next = {
+      id:     req.params.id,
+      name:   b.name   !== undefined ? (b.name || '')        : (current.name || ''),
+      role:   b.role   !== undefined ? b.role                : current.role,
+      active: b.active !== undefined ? (b.active ? 1 : 0)    : (current.active ? 1 : 0)
+    };
+
+    await stmt.userUpdate.run(next);
+    secLog('USER_UPDATED', current.email, req.ip,
+           `ID: ${req.params.id} active:${next.active} role:${next.role}`);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    // 23514 = check_violation — an unknown role value
+    if (e.code === '23514') return res.status(400).json({ error: 'Invalid role. Allowed: admin, user, franchise' });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // PUT /users/:id/unlock — admin unlocks a locked account
