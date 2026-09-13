@@ -1,10 +1,11 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
-Stan na **12.09.2026, 11:05** · gałąź `feature/franchise-calculator`
+Stan na **13.09.2026, 09:15** · gałąź `feature/franchise-calculator`
 Wersja interaktywna (artefakt Claude): utrzymywana równolegle, ten plik jest
 kopią w repozytorium.
 
-**Postęp: 24 / 27 zadań. Etapy 1–4 zamknięte. Zostało domknięcie etapu 5.**
+**Postęp: 25 / 27 zadań. Etapy 1–4 zamknięte, kod etapu 4 jest na GitHubie.
+Zostały dwie pozycje odłożone decyzją PO.**
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -12,7 +13,7 @@ kopią w repozytorium.
 | 2 | Baza danych i uprawnienia | ✅ 5/5 |
 | 3 | Backend modułu franczyzowego | ✅ 4/4 |
 | 4 | Interfejs — zakładka Franchise | ✅ 6/6 |
-| 5 | Domknięcie | ⬜ 4/7 |
+| 5 | Domknięcie | ⬜ 5/7 — zostały dwie pozycje odłożone decyzją PO |
 
 ---
 
@@ -62,10 +63,12 @@ kopią w repozytorium.
 
 ### Dodatkowo w etapie 4
 
-- [x] **Zakładka „Kreator CV" ukryta w interfejsie** — decyzja PO z 12.09.2026.
-      Kod, baza CV i wszystkie końcówki `/cv/` zostają nietknięte; zakładka jest
-      tylko niedostępna z paska. Przełącznik `FR_CV_ENABLED` w `index.html`
-      przywraca ją jednym słowem.
+- [x] **Trzy moduły, ograniczony tylko franczyzobiorca** — decyzja PO
+      z 13.09.2026. Aplikacja ma standardowy generator ofert, Kreator CV
+      i franczyzowy generator ofert. Konsultant widzi Angebot i Kreator CV,
+      administrator wszystko, franczyzobiorca **wyłącznie** swój generator.
+      (Krótkotrwała decyzja z 12.09 o ukryciu Kreatora CV przed wszystkimi
+      została wycofana dzień później.)
 - [x] **Naprawiony błąd w `PUT /users/:id`** (znaleziony przy okazji, naprawiony
       od razu). Handler nadpisywał `name`, `role` i `active` przy każdym
       żądaniu, z wartościami domyślnymi `name||''` i `role||'user'`. Panel admina
@@ -84,7 +87,7 @@ Aplikacja uruchomiona w prawdziwej przeglądarce (Chromium), backend zaślepiony
 
 | Obszar | Co sprawdzono |
 | --- | --- |
-| Uprawnienia | Konto `franchise` widzi tylko swoją zakładkę; przełączenie na Angebot lub Kreator CV z konsoli przeglądarki nie działa. Konto `user` nie widzi Franchise. Admin widzi Angebot i Franchise. |
+| Uprawnienia | Konto `franchise` widzi tylko swoją zakładkę; przełączenie na Angebot lub Kreator CV z konsoli przeglądarki nie działa. Konto `user` widzi Angebot i Kreator CV, nie widzi Franchise. Admin widzi wszystkie trzy. |
 | Kwoty | Cztery pakiety przy prowizji 0 dają dokładnie 77 / 93 / 107 / 120 €/dzień. Silber + 600 € = 3.400,00 €/mies. i 112,93 €/dzień. |
 | Dwóch pacjentów | Dodatek 15 €/dzień zaznaczany i blokowany; Gesamt 3.850,00 €/mies.; powrót na 1 osobę zwalnia dodatek. |
 | Dodatki | Express liczony jednorazowo, nie ×30. |
@@ -106,7 +109,10 @@ dla konta `franchise`, oraz nowa końcówka `POST /users/:id/reset-link`.
       usunięte z Railway po udanym logowaniu
 - [x] Naprawiony błąd blokujący każde logowanie (adres własnej strony zawsze
       dozwolony przez CORS; obce adresy nadal odrzucane)
-- [ ] Zrównanie repozytorium lokalnego z GitHubem i wypchnięcie etapu 4
+- [x] Zrównanie repozytorium lokalnego z GitHubem i wypchnięcie etapu 4.
+      Uwierzytelnienie do GitHuba ustawione, `git push` działa z terminala.
+      Historia lokalna zrównana z `origin`, etap 4 wypchnięty commitami
+      `378fa18`, `09cc458` i kolejnymi.
 - [ ] Przejście produkcji na PostgreSQL — **odłożone decyzją PO**
 - [ ] Powrót modułu do repozytorium firmowego — **odłożone decyzją PO**
 - ~~Trwały dysk na zdjęcia opiekunek~~ — **poza zakresem decyzją PO 11.09.2026**
@@ -149,19 +155,25 @@ Express liczony jednorazowo. Prowizja ujemna i nieistniejący pakiet odrzucane (
 | Zakres prac | Tylko generator ofert; modułu CV nie rozwijamy |
 | Zmiana hasła | Administrator wysyła link do ustawienia hasła |
 | Pierwsze konto | Jednorazowo ze zmiennych `BOOTSTRAP_ADMIN_*` |
-| **Zakładka Kreator CV** | **Ukryta w interfejsie dla wszystkich, łącznie z administratorem (12.09.2026)** |
+| **Zakładka Kreator CV** | **Zostaje. Decyzja PO 13.09.2026: aplikacja ma trzy moduły, a ograniczony jest wyłącznie franczyzobiorca — widzi tylko swój generator. Zastępuje decyzję z 12.09 o ukryciu Kreatora przed wszystkimi** |
+| **Kasowanie ofert po czasie** | **Nie kasujemy. Sprawdzone: nocne czyszczenie o 2:00 dotyka wyłącznie CV, tokenów resetu hasła i logu bezpieczeństwa (12.09.2026)** |
+| **Kasowanie kont** | **Kont nie usuwamy — dezaktywujemy. Oferty przeżywają konto (12.09.2026)** |
 
 ## Wymaga decyzji
 
 1. Plan Railway próbny: zostało 28 dni albo 4,95 USD. Żadnych działań
    w kierunku płatności bez zgody PO.
-2. Okres przechowywania ofert. Oferty zawierają imię i nazwisko klienta.
-   CV kasują się po 90 dniach; dla ofert nie ustalono nic, więc na razie
-   nie kasują się wcale.
-3. Konsekwencja ukrycia Kreatora CV: gdy gałąź `feature/franchise-calculator`
-   trafi kiedyś na produkcję, konsultanci na `calculator.betreuung24.de`
-   też stracą dostęp do Kreatora CV i bazy CV. Do świadomego potwierdzenia
-   przed wdrożeniem produkcyjnym.
+
+## Do sprawdzenia na środowisku testowym
+
+Wymaga działającej aplikacji, więc nie dało się tego zrobić po stronie Claude:
+
+- [ ] Izolacja ofert: franczyzobiorca A nie widzi ofert franczyzobiorcy B
+- [ ] Konto `franchise`: `GET /cv/list` i `GET /users` zwracają 403
+- [ ] `POST /users/:id/reset-link` — link działa i wygasa po godzinie
+- [ ] `DELETE /users/:id` odmawia (405) i pisze o dezaktywacji
+- [ ] Migracja 004 wykonała się przy starcie
+- [ ] Zapis i wczytanie oferty odtwarza wszystkie pola, w tym prowizję
 
 ## Środowiska
 
@@ -176,6 +188,6 @@ Express liczony jednorazowo. Prowizja ujemna i nieistniejący pakiet odrzucane (
 
 | Usługa | Stan |
 | --- | --- |
-| GitHub | **odblokowany** — `github.com` i `api.github.com` odpowiadają z terminala |
+| GitHub | **działa w pełni** — sieć odblokowana, uwierzytelnienie ustawione, `git push` z terminala |
 | Railway | **nadal zablokowany** (proxy zwraca 403) — obsługa przez wtyczkę Chrome |
 | npm (kontener Claude) | zablokowany polityką egress, dlatego pełnej aplikacji nie da się postawić po stronie Claude; testy strony robione w przeglądarce z zaślepionym backendem |

@@ -5441,7 +5441,7 @@ document.getElementById('wizard-overlay').addEventListener('click', function(e){
           <input id="admin-new-email" type="email"    placeholder="E-Mail"                   class="input" style="font-size:13px;">
           <input id="admin-new-pass"  type="password" placeholder="Passwort (min. 8 Zeichen)" class="input" style="font-size:13px;">
           <select id="admin-new-role" class="select" style="font-size:13px;">
-            <option value="user">Konsultant (Angebot)</option>
+            <option value="user">Konsultant (Angebot + Kreator CV)</option>
             <option value="admin">Administrator (wszystko)</option>
             <option value="franchise">Franczyzobiorca (tylko kalkulator franczyzowy)</option>
           </select>
@@ -6273,12 +6273,12 @@ async function frLoadPricing(){
 
 /* ---------- role-driven interface ---------- */
 
-/* The CV module is switched off in the interface by decision of the product
-   owner, 12.09.2026. Nothing is deleted: the Kreator CV tab, the CV database
-   and every /cv/ endpoint stay exactly as they were, they are simply not
-   reachable from the tab bar. Setting this back to true restores the tab for
-   admin and user accounts with no other change. */
-var FR_CV_ENABLED = false;
+/* The application has three modules: the standard offer generator, the CV
+   creator and the franchise offer generator. Only the franchise role is
+   restricted — a franchise partner reaches the franchise generator and
+   nothing else. Decision of the product owner, 13.09.2026, replacing the
+   short-lived 12.09 decision to hide the CV creator from everyone. */
+var FR_CV_ENABLED = true;
 
 var FR_TABS_BY_ROLE = {
   admin:     FR_CV_ENABLED ? ['angebot','profil','franchise'] : ['angebot','franchise'],
