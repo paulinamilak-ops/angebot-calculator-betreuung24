@@ -1748,7 +1748,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
       <div class="fr-kunde-line" id="fr-kunde-line"></div>
 
       <div class="actions-row">
-        <button class="button-primary" onclick="frPrintOffer()">PDF / Drucken</button>
+        <button class="button-primary" id="fr-pdf-btn" onclick="frSavePdf()">PDF speichern</button>
         <button class="button-primary" id="fr-save-btn" onclick="frSaveOffer()"
           style="background:transparent;border:1.5px solid var(--border-light);color:var(--navy);">
           <span id="fr-save-label">Angebot speichern</span>
@@ -5997,6 +5997,135 @@ window.onafterprint = function(){
   if(frIsPrintingFranchise()) return frRestoreAfterPrint();
   if(typeof _frPrevAfter === 'function') return _frPrevAfter();
 };
+
+/* ---------- PDF ----------
+   The button writes a .pdf file straight to the download folder instead of
+   opening the print dialog. The library is served from this application, not
+   from a CDN, and is fetched only on the first click - it is close to a
+   megabyte and only franchise partners ever need it. */
+var _frPdfLoading = null;
+function frLoadPdfLib(){
+  if(window.html2pdf) return Promise.resolve(true);
+  if(_frPdfLoading) return _frPdfLoading;
+  _frPdfLoading = new Promise(function(resolve){
+    var s = document.createElement('script');
+    s.src = 'html2pdf.bundle.min.js';
+    s.onload  = function(){ resolve(!!window.html2pdf); };
+    s.onerror = function(){ resolve(false); };
+    document.head.appendChild(s);
+  });
+  return _frPdfLoading;
+}
+
+/* html2canvas paints what is on the screen, so the print stylesheet does not
+   apply. Everything the client must not see is hidden here by hand, and put
+   back afterwards. */
+var FR_PDF_HIDE = ['#tab-franchise .calc-settings', '#tab-franchise .actions-row',
+                   '#fr-history', '#tab-franchise .fr-msg'];
+function frPdfHide(){
+  FR_PDF_HIDE.forEach(function(sel){
+    document.querySelectorAll(sel).forEach(function(el){
+      el.dataset.frPdfDisplay = el.style.display || '';
+      el.style.display = 'none';
+    });
+  });
+  frCompactForPrint();
+}
+function frPdfShow(){
+
+  FR_PDF_HIDE.forEach(function(sel){
+    document.querySelectorAll(sel).forEach(function(el){
+      if(el.dataset.frPdfDisplay !== undefined){
+        el.style.display = el.dataset.frPdfDisplay;
+        delete el.dataset.frPdfDisplay;
+      }
+    });
+  });
+  FR_ADDON_ORDER.forEach(function(k){
+    var row = document.getElementById('fr-row-addon-'+k);
+    if(row && row.dataset.origDisplay !== undefined) row.style.display = row.dataset.origDisplay;
+  });
+  var block = document.getElementById('fr-zusatz-block');
+  if(block && block.dataset.origDisplay !== undefined) block.style.display = block.dataset.origDisplay;
+}
+
+function frPdfFilename(){
+  var parts = ['Angebot',
+    String(frVal('fr-nachname')).trim(),
+    String(frVal('fr-vorname')).trim(),
+    String(frVal('fr-datum')).trim()].filter(Boolean);
+  return parts.join('-')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue')
+    .replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss')
+    .replace(/[^A-Za-z0-9._-]+/g,'-')
+    .replace(/-+/g,'-').replace(/^-|-$/g,'') + '.pdf';
+}
+
+async function frSavePdf(){
+  var btn = document.getElementById('fr-pdf-btn');
+  var old = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'PDF wird erstellt…'; }
+  try{
+    var ready = await frLoadPdfLib();
+    if(!ready){
+      /* Library unavailable for any reason: fall back to the print dialog so
+         the offer can still be turned into a PDF from there. */
+      frShowMsg('fr-save-msg', 'PDF-Modul nicht verfügbar — es wird der Druckdialog geöffnet.', 'warn');
+      frPrintOffer();
+      return;
+    }
+    /* The whole tab, not the inner block: most of the styling is written as
+       ".pricing-scope <something>", and the renderer copies the target into a
+       bare container, so anything above it in the tree is lost. Taking the tab
+       keeps .pricing-scope inside the copy and the pills, colours and columns
+       come out as they look on screen. */
+    var target = document.getElementById('tab-franchise');
+    frPdfHide();
+
+    /* The offer is one page by definition, so the page is composed by hand:
+       the library's own pagination laid the block out at the A4 content
+       width, where it grew about 2% too tall and spilled onto a second,
+       nearly empty page. Here the picture is scaled to fit the page in one
+       piece, which also guarantees a single page however long the list of
+       add-ons gets. */
+    var canvas = await window.html2pdf().set({
+      image:       { type:'jpeg', quality:0.98 },
+      html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff', scrollY:0 }
+    }).from(target).toCanvas().get('canvas');
+
+    /* A blank A4 page to draw on. The library builds the document object only
+       from some source element, so a throwaway one is rendered and its page
+       replaced by an empty one. */
+    var seed = document.createElement('div');
+    seed.style.cssText = 'position:absolute;left:-9999px;top:0;width:10px;height:10px;background:#fff;';
+    document.body.appendChild(seed);
+    var pdf;
+    try{
+      pdf = await window.html2pdf().set({
+        margin:      0,
+        jsPDF:       { unit:'mm', format:'a4', orientation:'portrait' },
+        html2canvas: { scale:1, backgroundColor:'#ffffff' }
+      }).from(seed).toPdf().get('pdf');
+    } finally { seed.remove(); }
+    pdf.deletePage(1);
+    pdf.addPage('a4', 'portrait');
+
+    var margin = 8;
+    var maxW = 210 - 2 * margin, maxH = 297 - 2 * margin;
+    var ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+    var imgW  = canvas.width * ratio, imgH = canvas.height * ratio;
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG',
+                 margin + (maxW - imgW) / 2, margin, imgW, imgH);
+    pdf.save(frPdfFilename());
+    frShowMsg('fr-save-msg', '✓ PDF gespeichert.', 'ok');
+  } catch(e){
+    frShowMsg('fr-save-msg', 'PDF konnte nicht erstellt werden — es wird der Druckdialog geöffnet.', 'warn');
+    frPrintOffer();
+  } finally {
+    frPdfShow();
+    if(btn){ btn.disabled = false; btn.textContent = old || 'PDF speichern'; }
+  }
+}
 
 function frPrintOffer(){
   document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active','print-active'); });
