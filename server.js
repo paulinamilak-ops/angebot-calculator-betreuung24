@@ -448,12 +448,12 @@ const stmt = {
     gesamt_monat=@gesamt_monat,gesamt_tag=@gesamt_tag,gesamt_einmalig=@gesamt_einmalig,
     updated_at=NOW()
     WHERE id=@id AND user_id=@user_id RETURNING id`),
-  offListOwn:  db.prepare(`SELECT id,client_first_name,client_last_name,offer_date,paket,total_monat,total_tag,created_at,updated_at FROM franchise_offers WHERE user_id=? ORDER BY created_at DESC LIMIT 500`),
+  offListOwn:  db.prepare(`SELECT id,client_first_name,client_last_name,offer_date,paket,total_monat,total_tag,gesamt_monat,gesamt_einmalig,created_at,updated_at FROM franchise_offers WHERE user_id=? ORDER BY created_at DESC LIMIT 500`),
   offListAll:  db.prepare(`SELECT o.*,u.email AS owner_email,u.name AS owner_name FROM franchise_offers o JOIN users u ON u.id=o.user_id ORDER BY o.created_at DESC LIMIT 500`),
   // Accent-folded search: typing "muller" must find "Müller", and the other
   // way round. translate() is used instead of the unaccent extension so no
   // database privileges beyond plain SQL are needed.
-  offSearch:   db.prepare(`SELECT id,client_first_name,client_last_name,offer_date,paket,total_monat,total_tag,created_at,updated_at
+  offSearch:   db.prepare(`SELECT id,client_first_name,client_last_name,offer_date,paket,total_monat,total_tag,gesamt_monat,gesamt_einmalig,created_at,updated_at
     FROM franchise_offers
     WHERE user_id=@user_id AND (
          translate(lower(client_first_name),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn') LIKE translate(lower(@q),'äöüßàáâèéêìíîòóôùúûçñ','aousaaaeeeiiiooouuucn')

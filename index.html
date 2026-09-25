@@ -1190,15 +1190,6 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
 /* ---- Meine Angebote ---- */
 .fr-hist-search{ margin-bottom:10px; }
 .fr-hist-search input{ width:100%; box-sizing:border-box; }
-.fr-hist-list{ display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; }
-.fr-hist-item{
-  border:1.5px solid var(--border-light); border-radius:10px; padding:9px 12px;
-  display:flex; align-items:center; gap:10px;
-}
-.fr-hist-item.current{ border-color:var(--orange); background:#fffaf0; }
-.fr-hist-main{ flex:1; min-width:0; cursor:pointer; }
-.fr-hist-name{ font-size:13px; font-weight:700; color:var(--navy); }
-.fr-hist-meta{ font-size:11.5px; color:#9aa1b1; margin-top:1px; }
 .fr-hist-del{
   background:transparent; border:1.5px solid #f0d0d0; color:#ef4444; border-radius:999px;
   padding:3px 10px; font-size:11px; font-weight:700; cursor:pointer;
@@ -1214,6 +1205,30 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
 .fr-hist-confirm .no{ background:transparent; border:1.5px solid var(--border-light); color:#6b7280; }
 .fr-hist-empty{ text-align:center; color:#9aa1b1; font-size:12.5px; padding:18px 0; }
 
+/* ---- Meine Angebote: tabela wynikow ---- */
+.fr-hist-wrap{ overflow-x:auto; }
+.fr-hist-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.fr-hist-table th{
+  text-align:left; font-size:10.5px; font-weight:800; letter-spacing:0.6px;
+  text-transform:uppercase; color:#9aa1b1; padding:0 12px 8px;
+  border-bottom:1.5px solid var(--border-light); white-space:nowrap;
+}
+.fr-hist-table th.num{ text-align:right; }
+.fr-hist-table th.act{ width:1%; }
+.fr-hist-table td{
+  padding:11px 12px; border-bottom:1px solid #f0f1f5; color:var(--navy); vertical-align:middle;
+}
+.fr-hist-table tr:last-child td{ border-bottom:none; }
+.fr-hist-table tbody tr{ cursor:pointer; }
+.fr-hist-table tbody tr:hover{ background:#f8f9fc; }
+.fr-hist-table tr.current{ background:#fffaf0; }
+.fr-hist-table tr.current:hover{ background:#fff4e0; }
+.fr-hist-kunde{ font-weight:700; }
+.fr-hist-owner{ font-size:11px; color:#9aa1b1; margin-top:1px; }
+.fr-hist-table td.num{ text-align:right; font-weight:800; white-space:nowrap; }
+.fr-hist-table td.date{ color:#6b7280; white-space:nowrap; }
+.fr-hist-table td.act{ text-align:right; white-space:nowrap; }
+.fr-hist-empty{ text-align:center; color:#9aa1b1; font-size:13px; padding:24px 0; }
 @media print{
   /* The purchase price and the commission sit inside .calc-settings, which
      the global print rules already take off the page. These rules only tidy
@@ -1231,6 +1246,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
   <button id="tab-btn-angebot" class="tab-btn active" onclick="switchTab('angebot', this)">📄 Angebot</button>
   <button id="tab-btn-profil" class="tab-btn" onclick="switchTab('profil', this)">📋 Kreator CV</button>
   <button id="tab-btn-franchise" class="tab-btn" style="display:none;" onclick="switchTab('franchise', this)">🏢 Franchise</button>
+  <button id="tab-btn-angebote" class="tab-btn" style="display:none;" onclick="switchTab('angebote', this)">📁 Meine Angebote</button>
 </div>
 
 <!-- ===================== TAB 1: ANGEBOT ===================== -->
@@ -1809,41 +1825,6 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             </div>
           </div>
 
-          <div class="card fr-internal-card">
-            <div class="card-header">Ihre Kalkulation — erscheint nicht im Angebot</div>
-            <div class="abzug-row">
-              <div class="form-inline">
-                <span class="label">Einkaufspreis</span>
-              </div>
-              <div class="abzug-value" id="fr-base-monat">—</div>
-            </div>
-            <div class="abzug-row">
-              <div class="form-inline">
-                <span class="label">Einkaufspreis pro Tag</span>
-              </div>
-              <div class="abzug-value" id="fr-base-tag">—</div>
-            </div>
-            <div class="abzug-row">
-              <div class="form-inline">
-                <span class="label">Provision</span>
-                <input type="number" id="fr-provision" class="input" min="0" step="10"
-                       placeholder="0" inputmode="decimal">
-                <span class="label">€ / Monat</span>
-              </div>
-              <div class="abzug-value" id="fr-provision-echo">—</div>
-            </div>
-            <div class="fr-msg" id="fr-provision-msg"></div>
-            <hr class="sum-hr">
-            <div class="abzug-row">
-              <div class="form-inline"><span class="label" style="font-weight:900;">Verkaufspreis (Total)</span></div>
-              <div class="abzug-value" id="fr-total-monat" style="font-weight:900;">—</div>
-            </div>
-            <div class="abzug-row">
-              <div class="form-inline"><span class="label">Verkaufspreis pro Tag</span></div>
-              <div class="abzug-value" id="fr-total-tag">—</div>
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -1874,6 +1855,52 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
                   <span class="price-month" id="fr-produkt-preis">—</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wybor produktu jest wyzej: najpierw ustala sie pakiet, dopiero potem
+           prowizje. Blok ma klase calc-settings, wiec globalna regula wydruku
+           zdejmuje go ze strony razem z pozostalymi ustawieniami. -->
+      <div class="calc-settings">
+        <div class="section-title" style="margin-top:32px;">
+          <span>Ihre Kalkulation</span>
+          <img src="underline-curve.png" alt="" class="section-underline">
+        </div>
+        <div class="card-group">
+          <div class="card fr-internal-card">
+            <div class="card-header">Erscheint nicht im Angebot des Kunden</div>
+            <div class="abzug-row">
+              <div class="form-inline">
+                <span class="label">Einkaufspreis</span>
+              </div>
+              <div class="abzug-value" id="fr-base-monat">—</div>
+            </div>
+            <div class="abzug-row">
+              <div class="form-inline">
+                <span class="label">Einkaufspreis pro Tag</span>
+              </div>
+              <div class="abzug-value" id="fr-base-tag">—</div>
+            </div>
+            <div class="abzug-row">
+              <div class="form-inline">
+                <span class="label">Provision</span>
+                <input type="number" id="fr-provision" class="input" min="0" step="10"
+                       placeholder="0" inputmode="decimal">
+                <span class="label">€ / Monat</span>
+              </div>
+              <div class="abzug-value" id="fr-provision-echo">—</div>
+            </div>
+            <div class="fr-msg" id="fr-provision-msg"></div>
+            <hr class="sum-hr">
+            <div class="abzug-row">
+              <div class="form-inline"><span class="label" style="font-weight:900;">Verkaufspreis (Total)</span></div>
+              <div class="abzug-value" id="fr-total-monat" style="font-weight:900;">—</div>
+            </div>
+            <div class="abzug-row">
+              <div class="form-inline"><span class="label">Verkaufspreis pro Tag</span></div>
+              <div class="abzug-value" id="fr-total-tag">—</div>
             </div>
           </div>
         </div>
@@ -2090,24 +2117,46 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
     </div>
   </div>
 
-  <!-- ============ MEINE ANGEBOTE ============ -->
-  <div class="no-print" id="fr-history">
-    <div class="section-title" style="margin-top:32px;">
-      <span>Meine Angebote</span>
-      <img src="underline-curve.png" alt="" class="section-underline">
-    </div>
-    <div class="card-group">
-      <div class="card">
-        <div class="fr-hist-search">
-          <input type="text" id="fr-hist-q" class="input" placeholder="Suche nach Name…" autocomplete="off">
-        </div>
-        <div class="fr-hist-list" id="fr-hist-list"></div>
+
+</div>
+</div><!-- /tab-franchise -->
+<!-- ===================== TAB 4: MEINE ANGEBOTE ===================== -->
+<div id="tab-angebote" class="tab-content">
+<div class="container pricing-scope">
+
+  <div class="section-title" style="margin-top:8px;">
+    <span>Meine Angebote</span>
+    <img src="underline-curve.png" alt="" class="section-underline">
+  </div>
+
+  <div class="card-group">
+    <div class="card">
+      <div class="fr-hist-search">
+        <input type="text" id="fr-hist-q" class="input"
+               placeholder="Suche nach Vor- oder Nachname…" autocomplete="off">
       </div>
+
+      <div class="fr-hist-wrap">
+        <table class="fr-hist-table">
+          <thead>
+            <tr>
+              <th>Kunde</th>
+              <th>Produkt</th>
+              <th class="num">Preis / Monat</th>
+              <th>Erstellt am</th>
+              <th class="act"></th>
+            </tr>
+          </thead>
+          <tbody id="fr-hist-body"></tbody>
+        </table>
+      </div>
+
+      <div class="fr-hist-empty" id="fr-hist-empty">Noch keine Angebote gespeichert.</div>
     </div>
   </div>
 
 </div>
-</div><!-- /tab-franchise -->
+</div><!-- /tab-angebote -->
 
 
 <!-- ===================== CV WIZARD ===================== -->
@@ -5776,6 +5825,14 @@ function frDateDE(iso){
   var p = String(iso).slice(0,10).split('-');
   return p.length===3 ? p[2]+'.'+p[1]+'.'+p[0] : iso;
 }
+function frDateTimeDE(iso){
+  if(!iso) return '';
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return frDateDE(iso);
+  var p = function(n){ return (n<10?'0':'') + n; };
+  return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+
+         ', '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function frPaket(){ return frVal('fr-produkt-pick') || 'silber'; }
 function frPersons(){ return Number(frVal('fr-patient-count')) === 2 ? 2 : 1; }
 
@@ -6255,6 +6312,10 @@ async function frOpenOffer(id){
     frShowMsg('fr-save-msg','');
     frRecalc();
     frLoadHistory();
+    /* The list lives in its own tab now, so loading an offer takes the user
+       back to the calculator where the loaded figures actually are. */
+    var back = document.getElementById('tab-btn-franchise');
+    if(back) switchTab('franchise', back);
   } catch(e){ frShowMsg('fr-save-msg','Verbindungsfehler — Server nicht erreichbar.'); }
 }
 
@@ -6283,43 +6344,91 @@ async function frLoadHistory(){
 }
 
 function frRenderHistory(rows){
-  var box = document.getElementById('fr-hist-list'); if(!box) return;
-  box.innerHTML = '';
-  if(!rows || !rows.length){
-    box.innerHTML = '<div class="fr-hist-empty">Noch keine Angebote gespeichert.</div>';
-    return;
+  var body  = document.getElementById('fr-hist-body');
+  var empty = document.getElementById('fr-hist-empty');
+  var wrap  = document.querySelector('#tab-angebote .fr-hist-wrap');
+  if(!body) return;
+  body.innerHTML = '';
+
+  var szukane = String(frVal('fr-hist-q')).trim();
+  var sa = !!(rows && rows.length);
+  if(empty){
+    empty.style.display = sa ? 'none' : 'block';
+    empty.textContent = szukane
+      ? 'Kein Angebot gefunden für „' + szukane + '".'
+      : 'Noch keine Angebote gespeichert.';
   }
+  if(wrap) wrap.style.display = sa ? 'block' : 'none';
+  if(!sa) return;
+
   rows.forEach(function(o){
-    var item = document.createElement('div');
-    item.className = 'fr-hist-item' + (o.id === _frCurrentId ? ' current' : '');
-    var title = (o.client_last_name||'') + ', ' + (o.client_first_name||'') + ' — ' + frDateDE(o.offer_date);
-    var prod  = FR_PRODUCTS[o.paket] ? FR_PRODUCTS[o.paket].label.replace('Seniorenbetreuung ','') : (o.paket||'');
-    var owner = o.owner_email ? ' · ' + o.owner_email : '';
+    var tr = document.createElement('tr');
+    if(o.id === _frCurrentId) tr.className = 'current';
 
-    var main = document.createElement('div');
-    main.className = 'fr-hist-main';
-    main.innerHTML = '<div class="fr-hist-name"></div><div class="fr-hist-meta"></div>';
-    main.querySelector('.fr-hist-name').textContent = title;
-    main.querySelector('.fr-hist-meta').textContent = prod + ' · ' + frEuro(o.total_monat) + ' / Monat' + owner;
-    main.addEventListener('click', function(){ frOpenOffer(o.id); });
-    item.appendChild(main);
+    /* kogo dotyczy */
+    var kunde = document.createElement('td');
+    var imie  = document.createElement('div');
+    imie.className = 'fr-hist-kunde';
+    imie.textContent = (o.client_last_name || '') + ', ' + (o.client_first_name || '');
+    kunde.appendChild(imie);
+    var pod = document.createElement('div');
+    pod.className = 'fr-hist-owner';
+    pod.textContent = 'Angebot vom ' + frDateDE(o.offer_date) + (o.owner_email ? ' · ' + o.owner_email : '');
+    kunde.appendChild(pod);
+    tr.appendChild(kunde);
 
+    /* jaki produkt */
+    var prod = document.createElement('td');
+    prod.textContent = FR_PRODUCTS[o.paket]
+      ? FR_PRODUCTS[o.paket].label.replace('Seniorenbetreuung ', '')
+      : (o.paket || '');
+    tr.appendChild(prod);
+
+    /* jaka cena ustalona - kwota koncowa dla klienta, z dodatkami */
+    var cena = document.createElement('td');
+    cena.className = 'num';
+    var kwota = (o.gesamt_monat !== undefined && o.gesamt_monat !== null)
+              ? o.gesamt_monat : o.total_monat;
+    cena.textContent = frEuro(kwota);
+    if(Number(o.gesamt_einmalig) > 0){
+      var raz = document.createElement('div');
+      raz.className = 'fr-hist-owner';
+      raz.textContent = '+ ' + frEuro(o.gesamt_einmalig) + ' einmalig';
+      cena.appendChild(raz);
+    }
+    tr.appendChild(cena);
+
+    /* kiedy utworzona */
+    var data = document.createElement('td');
+    data.className = 'date';
+    data.textContent = frDateTimeDE(o.created_at);
+    tr.appendChild(data);
+
+    /* usuwanie, z potwierdzeniem w wierszu */
+    var akcje = document.createElement('td');
+    akcje.className = 'act';
     if(_frDeleteArmed === o.id){
       var conf = document.createElement('div');
       conf.className = 'fr-hist-confirm';
       var yes = document.createElement('button'); yes.className='yes'; yes.textContent='Löschen';
-      yes.addEventListener('click', function(){ frDeleteOffer(o.id); });
+      yes.addEventListener('click', function(ev){ ev.stopPropagation(); frDeleteOffer(o.id); });
       var no = document.createElement('button'); no.className='no'; no.textContent='Abbrechen';
-      no.addEventListener('click', frCancelDelete);
+      no.addEventListener('click', function(ev){ ev.stopPropagation(); frCancelDelete(); });
       conf.appendChild(yes); conf.appendChild(no);
-      item.appendChild(conf);
+      akcje.appendChild(conf);
     } else {
       var del = document.createElement('button');
       del.className = 'fr-hist-del'; del.textContent = 'Löschen';
-      del.addEventListener('click', function(){ frArmDelete(o.id); });
-      item.appendChild(del);
+      del.addEventListener('click', function(ev){ ev.stopPropagation(); frArmDelete(o.id); });
+      akcje.appendChild(del);
     }
-    box.appendChild(item);
+    tr.appendChild(akcje);
+
+    tr.addEventListener('click', function(ev){
+      if(ev.target && ev.target.closest && ev.target.closest('button')) return;
+      frOpenOffer(o.id);
+    });
+    body.appendChild(tr);
   });
 }
 
@@ -6356,15 +6465,16 @@ async function frLoadPricing(){
 var FR_CV_ENABLED = true;
 
 var FR_TABS_BY_ROLE = {
-  admin:     FR_CV_ENABLED ? ['angebot','profil','franchise'] : ['angebot','franchise'],
-  user:      FR_CV_ENABLED ? ['angebot','profil']             : ['angebot'],
-  franchise: ['franchise']
+  admin:     FR_CV_ENABLED ? ['angebot','profil','franchise','angebote'] : ['angebot','franchise','angebote'],
+  user:      FR_CV_ENABLED ? ['angebot','profil']                        : ['angebot'],
+  franchise: ['franchise','angebote']
 };
+var FR_ALL_TABS    = ['angebot','profil','franchise','angebote'];
 var _frAllowedTabs = ['angebot'];
 
 function frApplyRole(role){
   _frAllowedTabs = FR_TABS_BY_ROLE[role] || FR_TABS_BY_ROLE.user;
-  ['angebot','profil','franchise'].forEach(function(t){
+  FR_ALL_TABS.forEach(function(t){
     var btn = document.getElementById('tab-btn-'+t);
     if(btn) btn.style.display = _frAllowedTabs.indexOf(t) === -1 ? 'none' : '';
   });
