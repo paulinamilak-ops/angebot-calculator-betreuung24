@@ -1205,6 +1205,90 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
 .fr-hist-confirm .no{ background:transparent; border:1.5px solid var(--border-light); color:#6b7280; }
 .fr-hist-empty{ text-align:center; color:#9aa1b1; font-size:12.5px; padding:18px 0; }
 
+/* ================== DOKUMENT PDF ==================
+   Osobny uklad tylko do pliku PDF. Na ekranie zostaje wzorzec Angebot;
+   tutaj oferta wyglada jak dokument handlowy, nie jak wypelniony formularz.
+   Kolory firmowe: granat --navy i pomaranczowy --orange. */
+#fr-pdf-doc{
+  position:fixed; left:-12000px; top:0; width:794px;
+  z-index:-1; pointer-events:none;
+}
+.fr-pdf-page{
+  width:794px; min-height:1123px; box-sizing:border-box;
+  background:#fff; color:var(--navy);
+  padding:52px 56px 44px;
+  display:flex; flex-direction:column;
+  font-family:'Alan Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+.fr-pdf-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
+.fr-pdf-head .logo img{ height:40px; width:auto; display:block; }
+.fr-pdf-head .meta{ text-align:right; font-size:10px; color:#8a93a6; line-height:1.7; font-weight:600; }
+.fr-pdf-accent{ width:56px; height:5px; background:var(--orange); border-radius:3px; margin:40px 0 16px; }
+.fr-pdf-eyebrow{ font-size:11px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:#8a93a6; }
+.fr-pdf-h1{ font-size:42px; font-weight:900; line-height:1; letter-spacing:-0.6px; margin-top:6px; }
+.fr-pdf-h2{ font-size:27px; font-weight:900; line-height:1.15; margin-top:6px; }
+.fr-pdf-for{ font-size:15px; font-weight:700; color:#4b5565; margin-top:12px; }
+.fr-pdf-for span{ color:#9aa1b1; font-weight:600; }
+
+.fr-pdf-hero{
+  margin-top:30px; border-radius:18px; padding:24px 26px;
+  background:#f6f7fb; border-left:5px solid var(--orange);
+  display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+}
+.fr-pdf-hero .k{ font-size:10.5px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:#8a93a6; }
+.fr-pdf-hero .name{ font-size:23px; font-weight:900; margin-top:5px; }
+.fr-pdf-hero .nums{ text-align:right; white-space:nowrap; }
+.fr-pdf-hero .monat{ font-size:31px; font-weight:900; line-height:1; }
+.fr-pdf-hero .tag{ font-size:13px; font-weight:700; color:#6b7280; margin-top:5px; }
+
+.fr-pdf-label{
+  margin-top:34px; font-size:11px; font-weight:800; letter-spacing:1.5px;
+  text-transform:uppercase; display:flex; align-items:center; gap:10px;
+}
+.fr-pdf-label::before{ content:''; width:18px; height:3px; background:var(--orange); border-radius:2px; flex:none; }
+
+.fr-pdf-row{
+  display:flex; justify-content:space-between; align-items:baseline; gap:20px;
+  padding:11px 2px; border-bottom:1px solid #eceef4; font-size:13.5px;
+}
+.fr-pdf-row:last-child{ border-bottom:none; }
+.fr-pdf-row .v{ font-weight:800; white-space:nowrap; }
+.fr-pdf-row .sub{ font-size:10.5px; color:#9aa1b1; font-weight:700; }
+.fr-pdf-row.minus .v{ color:#16a34a; }
+
+.fr-pdf-total{
+  margin-top:28px; background:var(--navy); color:#fff; border-radius:18px;
+  padding:22px 26px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+}
+.fr-pdf-total .k{ font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--orange); }
+.fr-pdf-total .once{ font-size:12px; font-weight:700; color:rgba(255,255,255,0.82); margin-top:6px; }
+.fr-pdf-total .nums{ text-align:right; white-space:nowrap; }
+.fr-pdf-total .monat{ font-size:33px; font-weight:900; line-height:1; }
+.fr-pdf-total .tag{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.75); margin-top:5px; }
+
+.fr-pdf-note{
+  margin-top:24px; font-size:10px; line-height:1.65; color:#6b7280;
+  border-left:3px solid #e3e6ef; padding-left:14px;
+}
+.fr-pdf-note b{ color:var(--navy); }
+
+.fr-pdf-item{ margin-top:20px; break-inside:avoid; }
+.fr-pdf-item .t{ font-size:14.5px; font-weight:900; display:flex; align-items:center; gap:10px; }
+.fr-pdf-item .t::before{ content:''; width:8px; height:8px; border-radius:2px; background:var(--orange); flex:none; }
+.fr-pdf-item .b{ font-size:12px; line-height:1.7; color:#4b5565; margin-top:7px; padding-left:18px; }
+.fr-pdf-item .b ul{ margin:0; padding:0; list-style:none; }
+.fr-pdf-item .b li{ position:relative; padding-left:15px; margin:4px 0; }
+.fr-pdf-item .b li::before{
+  content:''; position:absolute; left:0; top:7px; width:5px; height:5px;
+  border-radius:50%; background:#cdd3e0;
+}
+
+.fr-pdf-foot{
+  margin-top:auto; padding-top:20px; border-top:1px solid #eceef4;
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:9.5px; color:#9aa1b1; font-weight:600;
+}
+
 /* ---- Meine Angebote: tabela wynikow ---- */
 .fr-hist-wrap{ overflow-x:auto; }
 .fr-hist-table{ width:100%; border-collapse:collapse; font-size:13px; }
@@ -6074,36 +6158,152 @@ function frLoadPdfLib(){
   return _frPdfLoading;
 }
 
-/* html2canvas paints what is on the screen, so the print stylesheet does not
-   apply. Everything the client must not see is hidden here by hand, and put
-   back afterwards. */
-var FR_PDF_HIDE = ['#tab-franchise .calc-settings', '#tab-franchise .actions-row',
-                   '#fr-history', '#tab-franchise .fr-msg'];
-function frPdfHide(){
-  FR_PDF_HIDE.forEach(function(sel){
-    document.querySelectorAll(sel).forEach(function(el){
-      el.dataset.frPdfDisplay = el.style.display || '';
-      el.style.display = 'none';
-    });
-  });
-  frCompactForPrint();
+/* Buduje dokument PDF poza ekranem. Do srodka trafiaja wylacznie kwoty
+   koncowe - cena zakupu i prowizja nie maja tu zadnej reprezentacji, wiec
+   nie moga wyciec do pliku klienta nawet przez pomylke w stylach. */
+function frPdfText(sel){
+  var el = document.querySelector(sel);
+  return el ? el.textContent.replace(/ /g, ' ').trim() : '';
 }
-function frPdfShow(){
+function frPdfEsc(t){
+  return String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function frPdfHead(){
+  return '<div class="fr-pdf-head">'
+    + '<div class="logo"><img src="pflegeplus-logo.png" alt="Betreuung 24"></div>'
+    + '<div class="meta">info@betreuung24.de<br>www.betreuung24.de</div>'
+    + '</div>';
+}
+function frPdfFoot(nr, ile){
+  return '<div class="fr-pdf-foot">'
+    + '<span>Betreuung 24 Sp. z o.o. &nbsp;|&nbsp; Al. Jerozolimskie 93, 02-001 Warschau, Polen</span>'
+    + '<span>' + nr + ' / ' + ile + '</span>'
+    + '</div>';
+}
 
-  FR_PDF_HIDE.forEach(function(sel){
-    document.querySelectorAll(sel).forEach(function(el){
-      if(el.dataset.frPdfDisplay !== undefined){
-        el.style.display = el.dataset.frPdfDisplay;
-        delete el.dataset.frPdfDisplay;
-      }
-    });
+/* Strony opisowe przepisane z zakladki Angebot, zeby tresc byla w jednym
+   miejscu: zmiana opisu tam zmienia go i w ofercie franczyzowej. */
+function frPdfOpisy(selKarta, selTytul, selTresc){
+  var out = '';
+  document.querySelectorAll(selKarta).forEach(function(card){
+    var t = card.querySelector(selTytul);
+    var b = card.querySelector(selTresc);
+    if(!t) return;
+    /* Kopia bez klas: inaczej style z zakladki Angebot (np. wlasne punktory
+       .services-list li) nakladaja sie na uklad dokumentu i punktory
+       pojawiaja sie podwojnie. */
+    var tresc = '';
+    if(b){
+      var kopia = b.cloneNode(true);
+      kopia.removeAttribute('class');
+      kopia.querySelectorAll('[class]').forEach(function(el){ el.removeAttribute('class'); });
+      kopia.querySelectorAll('[style]').forEach(function(el){ el.removeAttribute('style'); });
+      tresc = (kopia.tagName === 'UL') ? kopia.outerHTML : kopia.innerHTML;
+    }
+    out += '<div class="fr-pdf-item"><div class="t">' + frPdfEsc(t.textContent.trim()) + '</div>'
+         + '<div class="b">' + tresc + '</div></div>';
   });
+  return out;
+}
+
+function frBuildPdfDoc(){
+  var doc = document.getElementById('fr-pdf-doc');
+  if(!doc) return null;
+
+  var vor  = String(frVal('fr-vorname')).trim();
+  var nach = String(frVal('fr-nachname')).trim();
+  var dat  = frVal('fr-datum');
+  var kto  = (vor + ' ' + nach).trim();
+
+  /* dodatki: etykieta z pola wyboru, kwoty z juz policzonych kolumn */
+  var dodatki = '';
   FR_ADDON_ORDER.forEach(function(k){
-    var row = document.getElementById('fr-row-addon-'+k);
-    if(row && row.dataset.origDisplay !== undefined) row.style.display = row.dataset.origDisplay;
+    if(!frChecked('fr-addon-' + k)) return;
+    var row = document.getElementById('fr-row-addon-' + k);
+    var lab = row ? row.querySelector('.checkbox-label') : null;
+    var nazwa = lab ? lab.textContent.replace(/\s+/g,' ').trim() : k;
+    var jednorazowy = FR_ADDONS[k] && FR_ADDONS[k].per === 'once';
+    var kwota = jednorazowy
+      ? frEuro(FR_ADDONS[k].amount) + ' einmalig'
+      : frPdfText('#fr-addon-' + k + '-month') + ' / Monat';
+    var podpis = jednorazowy ? '' : '<div class="sub">' + frPdfEsc(frPdfText('#fr-addon-' + k + '-day')) + ' / Tag</div>';
+    dodatki += '<div class="fr-pdf-row"><div>' + frPdfEsc(nazwa) + podpis + '</div>'
+             + '<div class="v">' + frPdfEsc(kwota) + '</div></div>';
   });
-  var block = document.getElementById('fr-zusatz-block');
-  if(block && block.dataset.origDisplay !== undefined) block.style.display = block.dataset.origDisplay;
+
+  /* odliczenia, jesli franczyzobiorca wlaczyl ich pokazywanie */
+  var odliczenia = '';
+  if(frChecked('fr-abzuege-toggle')){
+    var pozycje = [];
+    var g1 = Number(frVal('fr-pflegegrad1')) || 0;
+    if(FR_PFLEGEGELD[g1]) pozycje.push(['Pflegegeld — Pflegegrad ' + g1, FR_PFLEGEGELD[g1]]);
+    if(frPersons() === 2){
+      var g2 = Number(frVal('fr-pflegegrad2')) || 0;
+      if(FR_PFLEGEGELD[g2]) pozycje.push(['Pflegegeld — 2. Person, Pflegegrad ' + g2, FR_PFLEGEGELD[g2]]);
+    }
+    if(frChecked('fr-verhinderung')) pozycje.push(['Verhinderungspflege', FR_VERHIND]);
+    if(frChecked('fr-steuer'))       pozycje.push(['Steuerersparnis', FR_STEUER]);
+    if(pozycje.length){
+      odliczenia = '<div class="fr-pdf-label">Mögliche Abzüge</div>';
+      pozycje.forEach(function(r){
+        odliczenia += '<div class="fr-pdf-row minus"><div>' + frPdfEsc(r[0]) + '</div>'
+                    + '<div class="v">− ' + frPdfEsc(frEuro(r[1])) + ' / Monat</div></div>';
+      });
+    }
+  }
+
+  var einmalig = frPdfText('#fr-summary-express');
+  var ile = 4;
+
+  var s1 = '<div class="fr-pdf-page">'
+    + frPdfHead()
+    + '<div class="fr-pdf-accent"></div>'
+    + '<div class="fr-pdf-eyebrow">24-Stunden-Seniorenbetreuung im eigenen Zuhause</div>'
+    + '<div class="fr-pdf-h1">Angebot</div>'
+    + '<div class="fr-pdf-for">' + (kto ? 'für ' + frPdfEsc(kto) : '')
+    +   (dat ? ' <span>· ' + frPdfEsc(frDateDE(dat)) + '</span>' : '') + '</div>'
+    + '<div class="fr-pdf-hero">'
+    +   '<div><div class="k">Betreuungspaket</div><div class="name">'
+    +     frPdfEsc(frPdfText('#fr-summary-produkt-label')) + '</div></div>'
+    +   '<div class="nums"><div class="monat">' + frPdfEsc(frPdfText('#fr-produkt-preis')) + '</div>'
+    +     '<div class="tag">' + frPdfEsc(frPdfText('#fr-produkt-preis-tag')) + ' pro Tag</div></div>'
+    + '</div>'
+    + (dodatki ? '<div class="fr-pdf-label">Zusatzleistungen</div>' + dodatki : '')
+    + odliczenia
+    + '<div class="fr-pdf-total">'
+    +   '<div><div class="k">' + frPdfEsc(frPdfText('#fr-main-summary-title')) + '</div>'
+    +     (einmalig ? '<div class="once">zzgl. ' + frPdfEsc(einmalig) + ' einmalig</div>' : '') + '</div>'
+    +   '<div class="nums"><div class="monat">' + frPdfEsc(frPdfText('#fr-summe-final')) + '</div>'
+    +     '<div class="tag">' + frPdfEsc(frPdfText('#fr-summe-final-tag')) + ' pro Tag</div></div>'
+    + '</div>'
+    + '<div class="fr-pdf-note"><b>Hinweis:</b> 12 Tage im Jahr werden doppelt berechnet: Neujahr, '
+    + 'Karfreitag, Ostersonntag, Ostermontag, Erster Mai, Pfingstsonntag, Pfingstmontag, '
+    + 'Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.), sowie der Erste '
+    + 'und Zweite Weihnachtstag.<br>Eine Beispielberechnung für 30 Tage Dienstleistungserbringung. '
+    + 'Dies ist ein unverbindliches Angebot.</div>'
+    + frPdfFoot(1, ile)
+    + '</div>';
+
+  function strona(nr, tytul, tresc){
+    return '<div class="fr-pdf-page">' + frPdfHead()
+      + '<div class="fr-pdf-accent"></div>'
+      + '<div class="fr-pdf-h2">' + tytul + '</div>'
+      + tresc + frPdfFoot(nr, ile) + '</div>';
+  }
+
+  var s2 = strona(2, 'Sprachpakete — Produktbeschreibung',
+    frPdfOpisy('#tab-angebot .products-section .products-list .product-card',
+               '.product-title', '.product-text'));
+  var s3 = strona(3, 'Allgemeine Produktbeschreibung',
+    frPdfOpisy('#tab-angebot .services-section .service-card',
+               '.service-card-title', '.services-list'));
+  var s4 = strona(4, 'Beschreibung der Zusatzleistungen',
+    frPdfOpisy('#tab-angebot .addons-desc-section .products-list .product-card',
+               '.product-title', '.product-text'));
+
+  doc.innerHTML = s1 + s2 + s3 + s4;
+  return doc;
 }
 
 function frPdfFilename(){
@@ -6118,6 +6318,24 @@ function frPdfFilename(){
     .replace(/-+/g,'-').replace(/^-|-$/g,'') + '.pdf';
 }
 
+/* Pusta kartka A4 do rysowania. Biblioteka tworzy dokument tylko z jakiegos
+   elementu zrodlowego, wiec renderowany jest element zastepczy, a jego strona
+   podmieniana na czysta. */
+async function frPdfBlank(){
+  var seed = document.createElement('div');
+  seed.style.cssText = 'position:absolute;left:-9999px;top:0;width:10px;height:10px;background:#fff;';
+  document.body.appendChild(seed);
+  try{
+    var pdf = await window.html2pdf().set({
+      margin: 0,
+      jsPDF:       { unit:'mm', format:'a4', orientation:'portrait' },
+      html2canvas: { scale:1, backgroundColor:'#ffffff' }
+    }).from(seed).toPdf().get('pdf');
+    pdf.deletePage(1);
+    return pdf;
+  } finally { seed.remove(); }
+}
+
 async function frSavePdf(){
   var btn = document.getElementById('fr-pdf-btn');
   var old = btn ? btn.textContent : '';
@@ -6125,61 +6343,38 @@ async function frSavePdf(){
   try{
     var ready = await frLoadPdfLib();
     if(!ready){
-      /* Library unavailable for any reason: fall back to the print dialog so
-         the offer can still be turned into a PDF from there. */
       frShowMsg('fr-save-msg', 'PDF-Modul nicht verfügbar — es wird der Druckdialog geöffnet.', 'warn');
       frPrintOffer();
       return;
     }
-    /* The whole tab, not the inner block: most of the styling is written as
-       ".pricing-scope <something>", and the renderer copies the target into a
-       bare container, so anything above it in the tree is lost. Taking the tab
-       keeps .pricing-scope inside the copy and the pills, colours and columns
-       come out as they look on screen. */
-    var target = document.getElementById('tab-franchise');
-    frPdfHide();
 
-    /* The offer is one page by definition, so the page is composed by hand:
-       the library's own pagination laid the block out at the A4 content
-       width, where it grew about 2% too tall and spilled onto a second,
-       nearly empty page. Here the picture is scaled to fit the page in one
-       piece, which also guarantees a single page however long the list of
-       add-ons gets. */
-    var canvas = await window.html2pdf().set({
-      image:       { type:'jpeg', quality:0.98 },
-      html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff', scrollY:0 }
-    }).from(target).toCanvas().get('canvas');
+    var doc = frBuildPdfDoc();
+    var strony = doc ? doc.querySelectorAll('.fr-pdf-page') : [];
+    if(!strony.length) throw new Error('Dokument pusty');
 
-    /* A blank A4 page to draw on. The library builds the document object only
-       from some source element, so a throwaway one is rendered and its page
-       replaced by an empty one. */
-    var seed = document.createElement('div');
-    seed.style.cssText = 'position:absolute;left:-9999px;top:0;width:10px;height:10px;background:#fff;';
-    document.body.appendChild(seed);
-    var pdf;
-    try{
-      pdf = await window.html2pdf().set({
-        margin:      0,
-        jsPDF:       { unit:'mm', format:'a4', orientation:'portrait' },
-        html2canvas: { scale:1, backgroundColor:'#ffffff' }
-      }).from(seed).toPdf().get('pdf');
-    } finally { seed.remove(); }
-    pdf.deletePage(1);
-    pdf.addPage('a4', 'portrait');
+    var pdf = await frPdfBlank();
+    for(var i = 0; i < strony.length; i++){
+      var canvas = await window.html2pdf().set({
+        html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff', scrollY:0 }
+      }).from(strony[i]).toCanvas().get('canvas');
 
-    var margin = 8;
-    var maxW = 210 - 2 * margin, maxH = 297 - 2 * margin;
-    var ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-    var imgW  = canvas.width * ratio, imgH = canvas.height * ratio;
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG',
-                 margin + (maxW - imgW) / 2, margin, imgW, imgH);
+      pdf.addPage('a4', 'portrait');
+      /* Kazda kartka dokumentu ma proporcje A4 i wlasne marginesy, wiec obraz
+         idzie od krawedzi do krawedzi; skalowanie "zmiesc w calosci" chroni
+         przed przelaniem sie na kolejna strone, gdyby opis sie wydluzyl. */
+      var ratio = Math.min(210 / canvas.width, 297 / canvas.height);
+      var w = canvas.width * ratio, h = canvas.height * ratio;
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG',
+                   (210 - w) / 2, (297 - h) / 2, w, h);
+    }
     pdf.save(frPdfFilename());
     frShowMsg('fr-save-msg', '✓ PDF gespeichert.', 'ok');
   } catch(e){
     frShowMsg('fr-save-msg', 'PDF konnte nicht erstellt werden — es wird der Druckdialog geöffnet.', 'warn');
     frPrintOffer();
   } finally {
-    frPdfShow();
+    var doc2 = document.getElementById('fr-pdf-doc');
+    if(doc2) doc2.innerHTML = '';
     if(btn){ btn.disabled = false; btn.textContent = old || 'PDF speichern'; }
   }
 }
@@ -6521,5 +6716,8 @@ function frInitFranchise(){
 }
 </script>
 
+
+<!-- Dokument PDF budowany w locie, poza ekranem -->
+<div id="fr-pdf-doc" aria-hidden="true"></div>
 </body>
 </html>
