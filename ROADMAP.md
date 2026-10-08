@@ -1,11 +1,9 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
-Stan na **13.09.2026, 09:15** · gałąź `feature/franchise-calculator`
-Wersja interaktywna (artefakt Claude): utrzymywana równolegle, ten plik jest
-kopią w repozytorium.
+Stan na **08.10.2026** · gałąź `feature/franchise-calculator`
 
-**Postęp: 25 / 27 zadań. Etapy 1–4 zamknięte, kod etapu 4 jest na GitHubie.
-Zostały dwie pozycje odłożone decyzją PO.**
+**Etapy 1–5 zamknięte. Zostały dwie pozycje odłożone świadomą decyzją PO
+i zestaw sprawdzeń, które wymagają kliknięcia w uruchomionej aplikacji.**
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -13,126 +11,126 @@ Zostały dwie pozycje odłożone decyzją PO.**
 | 2 | Baza danych i uprawnienia | ✅ 5/5 |
 | 3 | Backend modułu franczyzowego | ✅ 4/4 |
 | 4 | Interfejs — zakładka Franchise | ✅ 6/6 |
-| 5 | Domknięcie | ⬜ 5/7 — zostały dwie pozycje odłożone decyzją PO |
+| 5 | Domknięcie | ✅ 5/7 — 2 odłożone decyzją PO |
 
 ---
 
-## Etap 1 — Fundament ✅
+## Co moduł robi dzisiaj
 
-- [x] Prywatne repozytorium GitHub `paulinamilak-ops/angebot-calculator-betreuung24`,
-      gałęzie `main` (punkt odniesienia) i `feature/franchise-calculator`
-- [x] `package.json` — nie istniał w repozytorium, lista była tylko w komentarzu
-      na górze `server.js`
-- [x] Uruchomienie w kontenerze — `PORT` i nowa zmienna `HOST`, `express.static`
-      gdy nie ma Nginxa
-- [x] Klucz API wyjęty z kodu — atrapa `__API_KEY_PLACEHOLDER__` podstawiana
-      ze zmiennej środowiskowej przy serwowaniu `index.html`
-- [x] Docker lokalnie — `docker compose up` stawia aplikację i Postgres razem
+Aplikacja ma **trzy moduły**: standardowy generator ofert (Angebot),
+Kreator CV i franczyzowy generator ofert. Ograniczony jest wyłącznie
+franczyzobiorca — widzi swój generator i nic poza nim.
 
-## Etap 2 — Baza i uprawnienia ✅
+| Rola | Angebot | Kreator CV | Franchise | Meine Angebote | Panel admina |
+| --- | --- | --- | --- | --- | --- |
+| `admin` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `user` (konsultant) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `franchise` | ❌ | ❌ | ✅ | ✅ | ❌ |
 
-- [x] `db.js` — warstwa PostgreSQL zachowująca powierzchnię wywołań
-      better-sqlite3; `server.js` przepisany (36 wywołań bazy, 17 handlerów)
-- [x] `migrations/001–003` uruchamiane przy starcie, w transakcji, raz na plik
-- [x] Rola `franchise` — wyłączająca; `denyFranchise` na `/cv/*` i `/ai/generate`,
-      `requireFranchise` na `/franchise/*`
-- [x] Zamknięta dziura: `requireApiKey` wymaga teraz tokenu JWT
-- [x] `create-admin.js` przyjmuje rolę jako czwarty argument
+**Zakładka Franchise** — układ i styl jak w Angebot, jedna kolumna:
+dane klienta → dane podstawowe → wybór pakietu → *Ihre Kalkulation*
+(cena zakupu, prowizja, cena sprzedaży) → dodatki → odliczenia →
+podsumowanie. Przeliczanie na żywo przy każdym wciśnięciu klawisza.
 
-## Etap 3 — Backend franczyzy ✅
+**Zakładka Meine Angebote** — tabela zapisanych ofert: Kunde (nazwisko, imię,
+data oferty), Produkt, Preis / Monat, Erstellt am. Szukanie po imieniu
+i nazwisku ze składaniem umlautów. Kliknięcie w wiersz wczytuje ofertę
+i wraca na kalkulator. Usuwanie z potwierdzeniem w wierszu.
 
-- [x] Cennik i wyliczenia po stronie serwera — `/franchise/pricing`, `/franchise/calc`
-- [x] Historia ofert — `/franchise/offers` (GET POST PUT DELETE) + `/offers/search`
-- [x] Izolacja między franczyzobiorcami — filtr po `user_id` z tokenu, cudza
-      oferta zwraca 404
-- [x] Szukanie ze składaniem umlautów — „muller" znajduje „Müller"
+**PDF** — przycisk zapisuje gotowy plik, bez okna drukowania. Nazwa składana
+z danych klienta. Cztery strony: oferta w układzie dokumentu handlowego
+(kolory firmowe), opis pakietów językowych, ogólny opis usługi, opis
+dodatków. Opisy przepisywane z zakładki Angebot w chwili zapisu — jedno
+źródło treści dla obu ofert.
 
-## Etap 4 — Interfejs ✅ (12.09.2026)
+**Czego klient nigdy nie zobaczy:** ceny zakupu i prowizji. Dokument PDF
+jest budowany osobno i dostaje wyłącznie kwoty końcowe — te dwie liczby
+nie mają w nim żadnej reprezentacji. Na wydruku z przeglądarki chroni je
+dodatkowo blok `calc-settings`, zdejmowany ze strony regułą wydruku.
 
-- [x] Ekran kalkulatora w `index.html` — pakiet, prowizja, liczba pacjentów,
-      dodatki, przeliczanie na żywo przy każdym wciśnięciu klawisza
-- [x] Podgląd oferty dla klienta — wyłącznie kwoty końcowe, dodatki, notka
-      o 12 dniach świątecznych
-- [x] Wydruk — `@media print`, ukryty panel wejściowy i historia, stopka
-      wyłącznie z danymi centrali, jedna strona A4
-- [x] Panel „Meine Angebote" — lista, szukanie, wczytanie, usuwanie
-      z potwierdzeniem w wierszu (bez `confirm()` przeglądarki)
-- [x] Rola w panelu admina (lista, zmiana roli) + ukrywanie zakładek według roli
-- [x] Administrator wysyła link do ustawienia hasła — `POST /users/:id/reset-link`,
-      token ważny 1 h, link pokazywany administratorowi do skopiowania
+---
 
-### Dodatkowo w etapie 4
+## Etapy 1–3 ✅
 
-- [x] **Trzy moduły, ograniczony tylko franczyzobiorca** — decyzja PO
-      z 13.09.2026. Aplikacja ma standardowy generator ofert, Kreator CV
-      i franczyzowy generator ofert. Konsultant widzi Angebot i Kreator CV,
-      administrator wszystko, franczyzobiorca **wyłącznie** swój generator.
-      (Krótkotrwała decyzja z 12.09 o ukryciu Kreatora CV przed wszystkimi
-      została wycofana dzień później.)
-- [x] **Naprawiony błąd w `PUT /users/:id`** (znaleziony przy okazji, naprawiony
-      od razu). Handler nadpisywał `name`, `role` i `active` przy każdym
-      żądaniu, z wartościami domyślnymi `name||''` i `role||'user'`. Panel admina
-      przy dezaktywacji konta wysyła samo `{ active }` — czyli **kasował nazwę
-      konta i degradował administratora do zwykłego użytkownika**. Teraz pole
-      nieobecne w żądaniu zachowuje swoją wartość.
-- [x] **Naprawiony błąd w przełączniku liczby osób** (znaleziony przez testy).
-      Powrót z „2 Personen" na „1 Person" odblokowywał dodatek 15 €/dzień, ale
-      zostawiał go zaznaczonym — oferta dla jednego pacjenta niosła 450 €/mies.
-      za drugiego. Teraz dodatek jest zwalniany razem z wyborem.
+- [x] Repozytorium prywatne, dwie gałęzie, `package.json`, Docker, Railway
+- [x] Klucz API wyjęty z kodu do zmiennej środowiskowej
+- [x] Cała aplikacja na PostgreSQL, `db.js`, migracje uruchamiane przy starcie
+- [x] Rola `franchise` jako rola wyłączająca, egzekwowana po stronie API
+- [x] Zamknięta dziura: `requireApiKey` wymaga tokenu JWT, nie samego klucza
+- [x] Cennik i wyliczenia po stronie serwera, historia ofert, izolacja po `user_id`
+- [x] Szukanie ze składaniem umlautów
 
-### Jak to sprawdzono
+## Etap 4 — Interfejs ✅
 
-Aplikacja uruchomiona w prawdziwej przeglądarce (Chromium), backend zaślepiony.
-**50 z 50 testów przechodzi.** Zakres:
+- [x] Ekran kalkulatora z przeliczaniem na żywo
+- [x] Podgląd oferty dla klienta — tylko kwoty końcowe
+- [x] Wydruk i PDF — stopka wyłącznie centrali
+- [x] Panel historii ofert (osobna zakładka)
+- [x] Rola w panelu admina i ukrywanie zakładek według roli
+- [x] Link do ustawienia hasła wystawiany przez administratora
 
-| Obszar | Co sprawdzono |
+### Dodatkowo, poza pierwotnym zakresem
+
+- [x] Układ zakładki przebudowany na wzorzec Angebot
+- [x] PDF jako osobny dokument w kolorach firmowych, cztery strony
+- [x] Konta dezaktywowane zamiast usuwanych, oferty przeżywają konto
+
+### Błędy znalezione i naprawione po drodze
+
+| Co | Skutek przed naprawą |
 | --- | --- |
-| Uprawnienia | Konto `franchise` widzi tylko swoją zakładkę; przełączenie na Angebot lub Kreator CV z konsoli przeglądarki nie działa. Konto `user` widzi Angebot i Kreator CV, nie widzi Franchise. Admin widzi wszystkie trzy. |
-| Kwoty | Cztery pakiety przy prowizji 0 dają dokładnie 77 / 93 / 107 / 120 €/dzień. Silber + 600 € = 3.400,00 €/mies. i 112,93 €/dzień. |
-| Dwóch pacjentów | Dodatek 15 €/dzień zaznaczany i blokowany; Gesamt 3.850,00 €/mies.; powrót na 1 osobę zwalnia dodatek. |
-| Dodatki | Express liczony jednorazowo, nie ×30. |
-| Prowizja | Ujemna → komunikat po niemiecku, oferta niezmieniona. Pusta → Total = cena bazowa, bez błędu. |
-| Oferta dla klienta | Brak ceny bazowej, brak słów „Provision" i „Einkaufspreis", stopka centrali, notka o 12 dniach. |
-| Wydruk | To samo co wyżej + panel wejściowy i historia usunięte ze strony, kwoty końcowe obecne. |
-| Historia | Nazwy w formacie `Nazwisko, Imię — DD.MM.RRRR`; usuwanie potwierdzane w wierszu, bez okna przeglądarki. |
-| Składnia | `npm run check-html` — wszystkie 4 skrypty OK. `npm run check-js` — OK. |
+| `PUT /users/:id` nadpisywał wszystkie pola | Dezaktywacja administratora kasowała nazwę konta i degradowała go do zwykłego użytkownika |
+| Powrót z „2 Personen" na „1 Person" | Dodatek 15 €/dzień zostawał zaznaczony — oferta dla jednego pacjenta niosła 450 €/mies. za nieistniejącą drugą osobę |
+| `ON DELETE CASCADE` na ofertach | Usunięcie konta franczyzobiorcy kasowało po cichu całą jego historię ofert |
+| Kwota Express w kolumnie o stałej szerokości | Na wydruku „300,00 € (einmalig" bez końca |
+| PDF na dwóch stronach | Druga strona prawie pusta |
+| Pigułki Pro Tag / Pro Monat w PDF | Traciły tło i kolory |
+| Podwójne punktory na stronie opisowej PDF | Style z Angebot nakładały się na układ dokumentu |
 
-**Czego jeszcze nie sprawdzono na żywym serwerze** (wymaga wdrożenia na Railway):
-izolacja ofert między dwoma realnymi kontami franczyzowymi, `GET /cv/list` → 403
-dla konta `franchise`, oraz nowa końcówka `POST /users/:id/reset-link`.
+## Etap 5 — Domknięcie ✅
 
-## Etap 5 — Domknięcie ⬜
-
-- [x] Środowisko testowe uruchomione i sprawdzone
+- [x] Środowisko testowe Railway działa
 - [x] Blok `location /franchise/` w `nginx-calculator.conf`
-- [x] Konto administratora założone i sprawdzone; zmienne `BOOTSTRAP_ADMIN_*`
-      usunięte z Railway po udanym logowaniu
-- [x] Naprawiony błąd blokujący każde logowanie (adres własnej strony zawsze
-      dozwolony przez CORS; obce adresy nadal odrzucane)
-- [x] Zrównanie repozytorium lokalnego z GitHubem i wypchnięcie etapu 4.
-      Uwierzytelnienie do GitHuba ustawione, `git push` działa z terminala.
-      Historia lokalna zrównana z `origin`, etap 4 wypchnięty commitami
-      `378fa18`, `09cc458` i kolejnymi.
+- [x] Konto administratora założone, zmienne `BOOTSTRAP_ADMIN_*` usunięte
+- [x] Naprawiony błąd CORS blokujący każde logowanie
+- [x] Repozytorium zrównane z GitHubem, `git push` działa z terminala
 - [ ] Przejście produkcji na PostgreSQL — **odłożone decyzją PO**
 - [ ] Powrót modułu do repozytorium firmowego — **odłożone decyzją PO**
-- ~~Trwały dysk na zdjęcia opiekunek~~ — **poza zakresem decyzją PO 11.09.2026**
 
 ---
 
-## Kontrola zgodności z cennikiem
+## Co zostało sprawdzone i jak
 
-Sprawdzone trzykrotnie: na uruchomionym PostgreSQL 16 (backend), na samych
-wzorach, i w przeglądarce na gotowej zakładce.
+**W przeglądarce, na uruchomionej stronie — 77 z 77 testów.** Uprawnienia
+trzech ról, blokada przełączania zakładek z konsoli, zgodność kwot
+z cennikiem, dwóch pacjentów, Express liczony jednorazowo, walidacja
+prowizji, brak ceny bazowej i prowizji w ofercie, na wydruku i w dokumencie
+PDF, format tabeli historii, usuwanie bez okna przeglądarki, liczba i tytuły
+stron PDF, oraz to, że zakładka Angebot nadal poprawnie liczy.
 
-| Pakiet | Przelicznik | Prowizja 0 € | Prowizja 600 €/mies. |
-| --- | --- | --- | --- |
-| Bronze | 2300 / 77 | 2 300,00 € · **77,00 €/dz.** | 2 900,00 € · 97,09 €/dz. |
-| Silber | 2800 / 93 | 2 800,00 € · **93,00 €/dz.** | 3 400,00 € · 112,93 €/dz. |
-| Gold | 3200 / 107 | 3 200,00 € · **107,00 €/dz.** | 3 800,00 € · 127,06 €/dz. |
-| Platin | 3600 / 120 | 3 600,00 € · **120,00 €/dz.** | 4 200,00 € · 140,00 €/dz. |
+**Na prawdziwym PostgreSQL 16** — migracje 001–004 wykonują się po kolei bez
+błędu; migracja 004 jest idempotentna; więź klucza obcego to RESTRICT;
+**próba usunięcia konta z ofertami jest odrzucana przez bazę, a oferta
+zostaje**; konto bez ofert nadal da się usunąć; kolumna `role` przyjmuje
+`admin`, `user`, `franchise` i odrzuca cokolwiek innego; tabela
+`password_resets` istnieje ze wszystkimi kolumnami.
 
-Dwóch pacjentów: Silber + prowizja 600 € + druga osoba pod opieką = 3 850,00 €/mies.
-Express liczony jednorazowo. Prowizja ujemna i nieistniejący pakiet odrzucane (400).
+**Przez odczyt kodu** — `/cv/*` i `/ai/generate` przechodzą przez
+`requireApiKey`, który jest złożeniem `requireAuth` + `denyFranchise`, więc
+konto franczyzowe dostaje 403 na każdej z nich. `/users*` wymaga
+`requireAdmin`. `DELETE /users/:id` zwraca 405 bezwarunkowo. Token linku do
+hasła ma ważność 1 godziny (`RESET_TOKEN_HOURS`).
+
+**Potwierdzone przez PO na środowisku testowym** — izolacja ofert: jeden
+franczyzobiorca nie widzi ofert drugiego.
+
+### Zostało do kliknięcia na Railway
+
+- [ ] `POST /users/:id/reset-link` — link faktycznie otwiera ustawienie hasła
+      i przestaje działać po godzinie
+- [ ] Próba usunięcia konta w panelu admina — komunikat o dezaktywacji
+
+---
 
 ## Decyzje podjęte
 
@@ -145,35 +143,27 @@ Express liczony jednorazowo. Prowizja ujemna i nieistniejący pakiet odrzucane (
 | Prowizja na dodatkach | Nie |
 | Odliczenia | Przełącznik, domyślnie wyłączone |
 | 12 dni świątecznych | Tylko notka informacyjna |
-| Historia ofert | Tak, per użytkownik, PostgreSQL |
-| Nazwa oferty | Imię + nazwisko klienta + data |
+| Historia ofert | Tak, per użytkownik, osobna zakładka |
 | Dane na wydruku | Tylko centrala Betreuung 24 |
 | Baza | PostgreSQL na Railway |
 | Plan Railway | Zostaje próbny |
-| Eksport ofert | Nie robimy |
-| Raport prowizji dla centrali | Nie robimy |
+| Eksport ofert, raport prowizji | Nie robimy |
 | Zakres prac | Tylko generator ofert; modułu CV nie rozwijamy |
 | Zmiana hasła | Administrator wysyła link do ustawienia hasła |
-| Pierwsze konto | Jednorazowo ze zmiennych `BOOTSTRAP_ADMIN_*` |
-| **Zakładka Kreator CV** | **Zostaje. Decyzja PO 13.09.2026: aplikacja ma trzy moduły, a ograniczony jest wyłącznie franczyzobiorca — widzi tylko swój generator. Zastępuje decyzję z 12.09 o ukryciu Kreatora przed wszystkimi** |
-| **Kasowanie ofert po czasie** | **Nie kasujemy. Sprawdzone: nocne czyszczenie o 2:00 dotyka wyłącznie CV, tokenów resetu hasła i logu bezpieczeństwa (12.09.2026)** |
-| **Kasowanie kont** | **Kont nie usuwamy — dezaktywujemy. Oferty przeżywają konto (12.09.2026)** |
+| Moduły aplikacji | Trzy: Angebot, Kreator CV, Franchise. Ograniczony tylko franczyzobiorca |
+| Kasowanie ofert po czasie | Nie kasujemy |
+| Kasowanie kont | Nie usuwamy — dezaktywujemy. Oferty przeżywają konto |
+| Kolejność na ekranie | Najpierw produkt, potem prowizja |
+| Przycisk PDF | Zapisuje plik, bez okna drukowania. Tylko w zakładce Franchise |
+| Strony opisowe w PDF | Wszystkie trzy, te same co w zwykłej ofercie |
 
 ## Wymaga decyzji
 
-1. Plan Railway próbny: zostało 28 dni albo 4,95 USD. Żadnych działań
+1. **Plan Railway** — zostało 28 dni albo 4,95 USD. Żadnych działań
    w kierunku płatności bez zgody PO.
-
-## Do sprawdzenia na środowisku testowym
-
-Wymaga działającej aplikacji, więc nie dało się tego zrobić po stronie Claude:
-
-- [ ] Izolacja ofert: franczyzobiorca A nie widzi ofert franczyzobiorcy B
-- [ ] Konto `franchise`: `GET /cv/list` i `GET /users` zwracają 403
-- [ ] `POST /users/:id/reset-link` — link działa i wygasa po godzinie
-- [ ] `DELETE /users/:id` odmawia (405) i pisze o dezaktywacji
-- [ ] Migracja 004 wykonała się przy starcie
-- [ ] Zapis i wczytanie oferty odtwarza wszystkie pola, w tym prowizję
+2. **Wdrożenie produkcyjne** — kiedy i czy. Produkcja stoi na gałęzi `main`,
+   na SQLite, nietknięta. Przed wdrożeniem trzeba świadomie potwierdzić
+   przejście produkcji na PostgreSQL i wykonać jednorazową migrację danych.
 
 ## Środowiska
 
@@ -182,12 +172,23 @@ Wymaga działającej aplikacji, więc nie dało się tego zrobić po stronie Cla
 | Railway (test) | `angebot-calculator-betreuung24-production.up.railway.app` | działa, gałąź `feature/franchise-calculator` |
 | Railway (baza) | usługa `Postgres` w projekcie `believable-upliftment` | działa, własny dysk |
 | Lokalnie | `http://localhost:3001` | `docker compose up` |
-| Produkcja | `calculator.betreuung24.de` | **nietknięta**, gałąź `main` |
+| Produkcja | `calculator.betreuung24.de` | **nietknięta**, gałąź `main`, SQLite |
 
-## Dostęp z terminala — stan na 12.09.2026
+## Dostęp z terminala
 
 | Usługa | Stan |
 | --- | --- |
-| GitHub | **działa w pełni** — sieć odblokowana, uwierzytelnienie ustawione, `git push` z terminala |
-| Railway | **nadal zablokowany** (proxy zwraca 403) — obsługa przez wtyczkę Chrome |
-| npm (kontener Claude) | zablokowany polityką egress, dlatego pełnej aplikacji nie da się postawić po stronie Claude; testy strony robione w przeglądarce z zaślepionym backendem |
+| GitHub | działa w pełni — sieć odblokowana, uwierzytelnienie ustawione, `git push` z terminala |
+| Railway | blokowany (proxy zwraca 403) — obsługa przez przeglądarkę |
+| npm (kontener Claude) | blokowany polityką egress; biblioteki z komputera są pod ARM, więc całej aplikacji nie da się postawić po stronie Claude |
+
+## Uwagi techniczne dla kolejnej sesji
+
+- Biblioteka `html2pdf.bundle.min.js` leży w repozytorium i jest serwowana
+  z własnej domeny, nie z CDN-a. Wczytuje się dopiero przy pierwszym
+  kliknięciu w przycisk PDF.
+- Przełącznik `FR_CV_ENABLED` w `index.html` włącza i wyłącza zakładkę
+  Kreator CV dla ról `admin` i `user`. Dziś `true`.
+- Przy każdym zerwaniu połączenia z komputerem gaśnie zgoda na kasowanie
+  plików, a git zostawia `.git/HEAD.lock`. Jeśli commit zawiedzie z „File
+  exists" — usunąć ten plik albo odsunąć go pod inną nazwą.
