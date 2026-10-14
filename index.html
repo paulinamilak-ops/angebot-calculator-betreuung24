@@ -1220,6 +1220,28 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
   display:flex; flex-direction:column;
   font-family:'Alan Sans','Segoe UI',system-ui,-apple-system,sans-serif;
 }
+/* Pierwsza strona (sama oferta) wypelnia cala kartke: tresc jest podzielona
+   na piec blokow, ktore rozkladaja sie rownomiernie od naglowka do stopki,
+   a typografia jest o rzad wieksza niz na stronach opisowych. */
+.fr-pdf-body{ flex:1; display:flex; flex-direction:column; justify-content:space-between; }
+.fr-pdf-body > * { flex:none; }
+.fr-pdf-page--offer .fr-pdf-h1{ font-size:54px; }
+.fr-pdf-page--offer .fr-pdf-eyebrow{ font-size:12.5px; }
+.fr-pdf-page--offer .fr-pdf-for{ font-size:17px; margin-top:14px; }
+.fr-pdf-page--offer .fr-pdf-hero{ padding:32px 34px; border-radius:20px; }
+.fr-pdf-page--offer .fr-pdf-hero .name{ font-size:28px; }
+.fr-pdf-page--offer .fr-pdf-hero .monat{ font-size:38px; }
+.fr-pdf-page--offer .fr-pdf-hero .tag{ font-size:15px; }
+.fr-pdf-page--offer .fr-pdf-hero .k{ font-size:11.5px; }
+.fr-pdf-page--offer .fr-pdf-label{ font-size:12px; }
+.fr-pdf-page--offer .fr-pdf-row{ font-size:15.5px; padding:15px 2px; }
+.fr-pdf-page--offer .fr-pdf-row .sub{ font-size:12px; }
+.fr-pdf-page--offer .fr-pdf-total{ padding:30px 34px; border-radius:20px; }
+.fr-pdf-page--offer .fr-pdf-total .monat{ font-size:41px; }
+.fr-pdf-page--offer .fr-pdf-total .tag{ font-size:15px; }
+.fr-pdf-page--offer .fr-pdf-total .k{ font-size:12px; }
+.fr-pdf-page--offer .fr-pdf-total .once{ font-size:13.5px; }
+.fr-pdf-page--offer .fr-pdf-note{ font-size:11.5px; line-height:1.7; }
 .fr-pdf-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
 .fr-pdf-head .logo img{ height:40px; width:auto; display:block; }
 .fr-pdf-head .meta{ text-align:right; font-size:10px; color:#8a93a6; line-height:1.7; font-weight:600; }
@@ -3407,11 +3429,15 @@ function openEditorForIndex(dataKey, idx, label){
 
 /* ========= ANGEBOT LOGIC ========= */
 const DAYS_IN_MONTH = 30;
+/* Price list "Online & Direktverkauf", valid from 1 October 2026.
+   The monthly price is binding; the month-to-day divisor is derived per
+   package from the price list itself (monat / tag), exactly as in the
+   franchise tab, so a daily rate never contradicts the printed list. */
 const products = {
-  bronze:{ monat:2600, label:"Seniorenbetreuung Bronze" },
-  silber:{ monat:2900, label:"Seniorenbetreuung Silber" },
-  gold:  { monat:3500, label:"Seniorenbetreuung Gold" },
-  platin:{ monat:3900, label:"Seniorenbetreuung Platin" }
+  bronze:{ monat:2700, tag:90,  label:"Seniorenbetreuung Bronze" },
+  silber:{ monat:3100, tag:103, label:"Seniorenbetreuung Silber" },
+  gold:  { monat:3600, tag:120, label:"Seniorenbetreuung Gold" },
+  platin:{ monat:3900, tag:130, label:"Seniorenbetreuung Platin" }
 };
 const pflegegeldMap = { 0:0,1:0,2:347,3:599,4:800,5:990 };
 const VERHIND=294, STEUER=333;
@@ -3431,8 +3457,10 @@ function recalc(){
   const produktKey=document.getElementById("produkt-pick").value;
   const patientCount=parseInt(document.getElementById("patient-count").value,10);
   const baseMonat=products[produktKey].monat;
+  /* Per-package divisor: monthly price divided by the printed daily rate. */
+  const divisor=products[produktKey].monat/products[produktKey].tag;
   setText("produkt-preis",euro(baseMonat));
-  setText("produkt-preis-tag",euro(Math.round(baseMonat/DAYS_IN_MONTH)));
+  setText("produkt-preis-tag",euro(Math.round(baseMonat/divisor)));
   setText("summary-produkt-label",products[produktKey].label);
   let addonSumMonth=0,expressAmount=0;
   addonDefs.forEach(a=>{
@@ -3485,20 +3513,20 @@ function recalc(){
   setText("gesamt-abzuege","- "+euro(totalAbzuege));
   const rowExpress=document.getElementById("row-express-summary");
   if(rowExpress){if(expressAmount>0){rowExpress.style.display="grid";setText("summary-express",euro(expressAmount)+" (einmalig)");}else{rowExpress.style.display="none";setText("summary-express","");}}
-  setText("sum-base-day",euro(Math.round(baseAfter/DAYS_IN_MONTH)));
+  setText("sum-base-day",euro(Math.round(baseAfter/divisor)));
   setText("sum-base-month",euro(Math.round(baseAfter)));
-  setText("sum-base-addons-day",euro(Math.round(totalBeforeAbzuege/DAYS_IN_MONTH)));
+  setText("sum-base-addons-day",euro(Math.round(totalBeforeAbzuege/divisor)));
   setText("sum-base-addons-month",euro(Math.round(totalBeforeAbzuege)));
-  setText("gesamt-vor-tag",euro(Math.round(totalBeforeAbzuege/DAYS_IN_MONTH)));
+  setText("gesamt-vor-tag",euro(Math.round(totalBeforeAbzuege/divisor)));
   setText("gesamt-vor",euro(Math.round(totalBeforeAbzuege)));
   const summaryAbzuegeRow=document.getElementById("summary-abzuege-row");
-  if(summaryAbzuegeRow){if(totalAbzuege>0){summaryAbzuegeRow.style.display="grid";setText("summary-abzuege-tag","- "+euro(Math.round(totalAbzuege/DAYS_IN_MONTH)));setText("summary-abzuege-monat","- "+euro(Math.round(totalAbzuege)));}else{summaryAbzuegeRow.style.display="none";}}
+  if(summaryAbzuegeRow){if(totalAbzuege>0){summaryAbzuegeRow.style.display="grid";setText("summary-abzuege-tag","- "+euro(Math.round(totalAbzuege/divisor)));setText("summary-abzuege-monat","- "+euro(Math.round(totalAbzuege)));}else{summaryAbzuegeRow.style.display="none";}}
   const badge=document.getElementById("discount-badge");
   if(badge){if(rabattBase>0){badge.style.display="inline-flex";setText("discount-badge-val","- "+euro(Math.round(rabattBase)));}else{badge.style.display="none";}}
   let finalMonth=totalBeforeAbzuege-totalAbzuege;
   if(finalMonth<0)finalMonth=0;
   setText("summe-final",euro(Math.round(finalMonth)));
-  setText("summe-final-tag",euro(Math.round(finalMonth/DAYS_IN_MONTH)));
+  setText("summe-final-tag",euro(Math.round(finalMonth/divisor)));
 }
 
 /* Compact addons for print */
@@ -6256,21 +6284,26 @@ function frBuildPdfDoc(){
   var einmalig = frPdfText('#fr-summary-express');
   var ile = 4;
 
-  var s1 = '<div class="fr-pdf-page">'
+  var s1 = '<div class="fr-pdf-page fr-pdf-page--offer">'
     + frPdfHead()
+    + '<div class="fr-pdf-body">'
+    + '<div>'
     + '<div class="fr-pdf-accent"></div>'
     + '<div class="fr-pdf-eyebrow">24-Stunden-Seniorenbetreuung im eigenen Zuhause</div>'
     + '<div class="fr-pdf-h1">Angebot</div>'
     + '<div class="fr-pdf-for">' + (kto ? 'für ' + frPdfEsc(kto) : '')
     +   (dat ? ' <span>· ' + frPdfEsc(frDateDE(dat)) + '</span>' : '') + '</div>'
+    + '</div>'
     + '<div class="fr-pdf-hero">'
     +   '<div><div class="k">Betreuungspaket</div><div class="name">'
     +     frPdfEsc(frPdfText('#fr-summary-produkt-label')) + '</div></div>'
     +   '<div class="nums"><div class="monat">' + frPdfEsc(frPdfText('#fr-produkt-preis')) + '</div>'
     +     '<div class="tag">' + frPdfEsc(frPdfText('#fr-produkt-preis-tag')) + ' pro Tag</div></div>'
     + '</div>'
+    + '<div>'
     + (dodatki ? '<div class="fr-pdf-label">Zusatzleistungen</div>' + dodatki : '')
     + odliczenia
+    + '</div>'
     + '<div class="fr-pdf-total">'
     +   '<div><div class="k">' + frPdfEsc(frPdfText('#fr-main-summary-title')) + '</div>'
     +     (einmalig ? '<div class="once">zzgl. ' + frPdfEsc(einmalig) + ' einmalig</div>' : '') + '</div>'
@@ -6282,6 +6315,7 @@ function frBuildPdfDoc(){
     + 'Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.), sowie der Erste '
     + 'und Zweite Weihnachtstag.<br>Eine Beispielberechnung für 30 Tage Dienstleistungserbringung. '
     + 'Dies ist ein unverbindliches Angebot.</div>'
+    + '</div>'
     + frPdfFoot(1, ile)
     + '</div>';
 
@@ -6355,7 +6389,7 @@ async function frSavePdf(){
     var pdf = await frPdfBlank();
     for(var i = 0; i < strony.length; i++){
       var canvas = await window.html2pdf().set({
-        html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff', scrollY:0 }
+        html2canvas: { scale:3, useCORS:true, backgroundColor:'#ffffff', scrollY:0 }
       }).from(strony[i]).toCanvas().get('canvas');
 
       pdf.addPage('a4', 'portrait');
@@ -6364,8 +6398,10 @@ async function frSavePdf(){
          przed przelaniem sie na kolejna strone, gdyby opis sie wydluzyl. */
       var ratio = Math.min(210 / canvas.width, 297 / canvas.height);
       var w = canvas.width * ratio, h = canvas.height * ratio;
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG',
-                   (210 - w) / 2, (297 - h) / 2, w, h);
+      /* PNG zamiast JPEG: tekst nie dostaje artefaktow kompresji wokol liter,
+         a skala 3 daje ok. 2380 x 3370 px na kartke A4 (ok. 285 dpi). */
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG',
+                   (210 - w) / 2, (297 - h) / 2, w, h, undefined, 'FAST');
     }
     pdf.save(frPdfFilename());
     frShowMsg('fr-save-msg', '✓ PDF gespeichert.', 'ok');
