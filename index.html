@@ -1223,6 +1223,60 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
 /* Pierwsza strona (sama oferta) wypelnia cala kartke: tresc jest podzielona
    na piec blokow, ktore rozkladaja sie rownomiernie od naglowka do stopki,
    a typografia jest o rzad wieksza niz na stronach opisowych. */
+/* Uklad przejety z dokumentu produkcyjnego: wysrodkowany tytul, sekcje
+   z pomaranczowym podkresleniem, trojkolumnowe wiersze z kolumnami
+   Pro Tag / Pro Monat. Zadnych szarych ramek - tylko cienkie linie. */
+.fr-pdf-center{ text-align:center; }
+.fr-pdf-kicker{ font-size:15px; font-weight:800; color:var(--navy); letter-spacing:0.2px; }
+.fr-pdf-angebot{ font-size:40px; font-weight:900; color:var(--orange); line-height:1.1; margin-top:4px; }
+.fr-pdf-kunde{ font-size:14px; font-weight:700; color:#5a6475; margin-top:10px; }
+
+.fr-pdf-sec{ margin-top:26px; }
+.fr-pdf-sec > .h{ font-size:15px; font-weight:900; color:var(--navy); display:inline-block; }
+.fr-pdf-sec > .h::after{
+  content:''; display:block; height:4px; border-radius:2px;
+  background:var(--orange); margin-top:4px; width:100%;
+}
+
+.fr-pdf-cols{
+  display:grid; grid-template-columns:1fr 110px 130px; gap:14px;
+  align-items:center; margin-top:14px;
+}
+.fr-pdf-pill{
+  font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  text-align:center; padding:5px 0; border-radius:999px; color:#fff;
+}
+.fr-pdf-pill.tag{ background:var(--orange); }
+.fr-pdf-pill.monat{ background:var(--navy); }
+
+.fr-pdf-line{
+  display:grid; grid-template-columns:1fr 110px 130px; gap:14px;
+  align-items:baseline; padding:10px 0; border-bottom:1px solid #edeff4;
+  font-size:13.5px;
+}
+.fr-pdf-line:last-child{ border-bottom:none; }
+.fr-pdf-line .n{ font-weight:600; color:var(--navy); }
+.fr-pdf-line .n .sub{ font-size:10.5px; color:#9aa1b1; font-weight:700; margin-top:2px; }
+.fr-pdf-line .t,
+.fr-pdf-line .m{ text-align:center; font-weight:800; white-space:nowrap; }
+.fr-pdf-line .t{ color:var(--orange); }
+.fr-pdf-line .m{ color:var(--navy); }
+.fr-pdf-line.strong .n{ font-weight:900; }
+.fr-pdf-line.minus .t,
+.fr-pdf-line.minus .m{ color:#16a34a; }
+.fr-pdf-line.rule{ border-top:2px solid var(--navy); border-bottom:none; padding-top:12px; }
+
+.fr-pdf-bar{
+  margin-top:22px; background:var(--navy); color:#fff; border-radius:14px;
+  padding:18px 22px; display:grid; grid-template-columns:1fr 110px 130px;
+  gap:14px; align-items:center;
+}
+.fr-pdf-bar .k{ font-size:14px; font-weight:900; }
+.fr-pdf-bar .once{ font-size:11.5px; font-weight:700; color:rgba(255,255,255,0.82); margin-top:4px; }
+.fr-pdf-bar .t,
+.fr-pdf-bar .m{ text-align:center; font-size:19px; font-weight:900; white-space:nowrap; }
+.fr-pdf-bar .t{ color:var(--orange); }
+
 .fr-pdf-body{ flex:1; display:flex; flex-direction:column; justify-content:space-between; }
 .fr-pdf-body > * { flex:none; }
 .fr-pdf-page--offer .fr-pdf-h1{ font-size:54px; }
@@ -6256,8 +6310,11 @@ function frBuildPdfDoc(){
       ? frEuro(FR_ADDONS[k].amount) + ' einmalig'
       : frPdfText('#fr-addon-' + k + '-month') + ' / Monat';
     var podpis = jednorazowy ? '' : '<div class="sub">' + frPdfEsc(frPdfText('#fr-addon-' + k + '-day')) + ' / Tag</div>';
-    dodatki += '<div class="fr-pdf-row"><div>' + frPdfEsc(nazwa) + podpis + '</div>'
-             + '<div class="v">' + frPdfEsc(kwota) + '</div></div>';
+    var kolTag = jednorazowy ? 'einmalig' : frPdfText('#fr-addon-' + k + '-day');
+    var kolMon = jednorazowy ? frEuro(FR_ADDONS[k].amount) : frPdfText('#fr-addon-' + k + '-month');
+    dodatki += '<div class="fr-pdf-line"><div class="n">' + frPdfEsc(nazwa) + '</div>'
+             + '<div class="t">' + frPdfEsc(kolTag) + '</div>'
+             + '<div class="m">' + frPdfEsc(kolMon) + '</div></div>';
   });
 
   /* odliczenia, jesli franczyzobiorca wlaczyl ich pokazywanie */
@@ -6273,10 +6330,10 @@ function frBuildPdfDoc(){
     if(frChecked('fr-verhinderung')) pozycje.push(['Verhinderungspflege', FR_VERHIND]);
     if(frChecked('fr-steuer'))       pozycje.push(['Steuerersparnis', FR_STEUER]);
     if(pozycje.length){
-      odliczenia = '<div class="fr-pdf-label">Mögliche Abzüge</div>';
       pozycje.forEach(function(r){
-        odliczenia += '<div class="fr-pdf-row minus"><div>' + frPdfEsc(r[0]) + '</div>'
-                    + '<div class="v">− ' + frPdfEsc(frEuro(r[1])) + ' / Monat</div></div>';
+        odliczenia += '<div class="fr-pdf-line minus"><div class="n">' + frPdfEsc(r[0]) + '</div>'
+                    + '<div class="t"></div>'
+                    + '<div class="m">− ' + frPdfEsc(frEuro(r[1])) + '</div></div>';
       });
     }
   }
@@ -6284,37 +6341,93 @@ function frBuildPdfDoc(){
   var einmalig = frPdfText('#fr-summary-express');
   var ile = 4;
 
+  /* Uklad oferty przejety z dokumentu produkcyjnego Betreuung 24:
+     wysrodkowany tytul, sekcje z pomaranczowym podkresleniem, kolumny
+     Pro Tag / Pro Monat i granatowy pasek kwoty koncowej. Bez ramek. */
+  function naglowekKolumn(){
+    return '<div class="fr-pdf-cols"><div></div>'
+      + '<div class="fr-pdf-pill tag">Pro Tag</div>'
+      + '<div class="fr-pdf-pill monat">Pro Monat</div></div>';
+  }
+  function wiersz(nazwa, tag, monat, klasa){
+    return '<div class="fr-pdf-line' + (klasa ? ' ' + klasa : '') + '">'
+      + '<div class="n">' + nazwa + '</div>'
+      + '<div class="t">' + frPdfEsc(tag || '') + '</div>'
+      + '<div class="m">' + frPdfEsc(monat || '') + '</div></div>';
+  }
+
+  var maAbzuege = odliczenia !== '';
+
   var s1 = '<div class="fr-pdf-page fr-pdf-page--offer">'
     + frPdfHead()
     + '<div class="fr-pdf-body">'
-    + '<div>'
-    + '<div class="fr-pdf-accent"></div>'
-    + '<div class="fr-pdf-eyebrow">24-Stunden-Seniorenbetreuung im eigenen Zuhause</div>'
-    + '<div class="fr-pdf-h1">Angebot</div>'
-    + '<div class="fr-pdf-for">' + (kto ? 'für ' + frPdfEsc(kto) : '')
-    +   (dat ? ' <span>· ' + frPdfEsc(frDateDE(dat)) + '</span>' : '') + '</div>'
+
+    /* --- tytul --- */
+    + '<div class="fr-pdf-center">'
+    +   '<div class="fr-pdf-kicker">24-Stunden-Seniorenbetreuung im eigenen Zuhause</div>'
+    +   '<div class="fr-pdf-angebot">Angebot</div>'
+    +   (kto || dat
+          ? '<div class="fr-pdf-kunde">' + (kto ? 'für ' + frPdfEsc(kto) : '')
+            + (kto && dat ? ' · ' : '') + (dat ? frPdfEsc(frDateDE(dat)) : '') + '</div>'
+          : '')
     + '</div>'
-    + '<div class="fr-pdf-hero">'
-    +   '<div><div class="k">Betreuungspaket</div><div class="name">'
-    +     frPdfEsc(frPdfText('#fr-summary-produkt-label')) + '</div></div>'
-    +   '<div class="nums"><div class="monat">' + frPdfEsc(frPdfText('#fr-produkt-preis')) + '</div>'
-    +     '<div class="tag">' + frPdfEsc(frPdfText('#fr-produkt-preis-tag')) + ' pro Tag</div></div>'
+
+    /* --- wybrana usluga --- */
+    + '<div class="fr-pdf-sec">'
+    +   '<div class="h">Ausgewählte Dienstleistung</div>'
+    +   naglowekKolumn()
+    +   wiersz(frPdfEsc(frPdfText('#fr-summary-produkt-label')),
+              frPdfText('#fr-produkt-preis-tag'),
+              frPdfText('#fr-produkt-preis'), 'strong')
     + '</div>'
-    + '<div>'
-    + (dodatki ? '<div class="fr-pdf-label">Zusatzleistungen</div>' + dodatki : '')
-    + odliczenia
+
+    /* --- dodatki --- */
+    + (dodatki
+        ? '<div class="fr-pdf-sec"><div class="h">Zusatzleistungen</div>'
+          + naglowekKolumn() + dodatki + '</div>'
+        : '')
+
+    /* --- odliczenia --- */
+    + (maAbzuege
+        ? '<div class="fr-pdf-sec"><div class="h">Abzüge</div>'
+          + naglowekKolumn() + odliczenia + '</div>'
+        : '')
+
+    /* --- podsumowanie --- */
+    + '<div class="fr-pdf-sec">'
+    +   '<div class="h">Zusammenfassung</div>'
+    +   naglowekKolumn()
+    +   wiersz('Basistarif',
+              frPdfText('#fr-sum-base-day'), frPdfText('#fr-sum-base-month'))
+    +   wiersz('Basistarif mit Zusatzoptionen',
+              frPdfText('#fr-sum-base-addons-day'), frPdfText('#fr-sum-base-addons-month'))
+    +   wiersz('Summe vor Abzügen',
+              frPdfText('#fr-gesamt-vor-tag'), frPdfText('#fr-gesamt-vor'), 'strong')
+    +   (maAbzuege
+          ? wiersz('Abzüge gesamt', '', frPdfText('#fr-gesamt-abzuege'), 'minus')
+          : '')
     + '</div>'
-    + '<div class="fr-pdf-total">'
+
+    /* --- kwota koncowa --- */
+    + '<div class="fr-pdf-bar">'
     +   '<div><div class="k">' + frPdfEsc(frPdfText('#fr-main-summary-title')) + '</div>'
-    +     (einmalig ? '<div class="once">zzgl. ' + frPdfEsc(einmalig) + ' einmalig</div>' : '') + '</div>'
-    +   '<div class="nums"><div class="monat">' + frPdfEsc(frPdfText('#fr-summe-final')) + '</div>'
-    +     '<div class="tag">' + frPdfEsc(frPdfText('#fr-summe-final-tag')) + ' pro Tag</div></div>'
+    +     (einmalig ? '<div class="once">zzgl. ' + frPdfEsc(einmalig) + ' einmalig</div>' : '')
+    +   '</div>'
+    +   '<div class="t">' + frPdfEsc(frPdfText('#fr-summe-final-tag')) + '</div>'
+    +   '<div class="m">' + frPdfEsc(frPdfText('#fr-summe-final')) + '</div>'
     + '</div>'
+
+    /* --- zastrzezenia --- */
     + '<div class="fr-pdf-note"><b>Hinweis:</b> 12 Tage im Jahr werden doppelt berechnet: Neujahr, '
     + 'Karfreitag, Ostersonntag, Ostermontag, Erster Mai, Pfingstsonntag, Pfingstmontag, '
     + 'Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.), sowie der Erste '
-    + 'und Zweite Weihnachtstag.<br>Eine Beispielberechnung für 30 Tage Dienstleistungserbringung. '
-    + 'Dies ist ein unverbindliches Angebot.</div>'
+    + 'und Zweite Weihnachtstag.<br>'
+    + 'Eine Beispielberechnung für 30 Tage Dienstleistungserbringung.<br>'
+    + 'Dies ist ein unverbindliches Angebot. Steuerliche Abzugsfähigkeit, insbesondere im Rahmen '
+    + 'der haushaltsnahen Dienstleistungen, ist grundsätzlich möglich, muss jedoch vom Kunden '
+    + 'selbst beantragt und mit dem zuständigen Finanzamt geklärt werden. Eine Garantie für die '
+    + 'steuerliche Anerkennung kann nicht übernommen werden.</div>'
+
     + '</div>'
     + frPdfFoot(1, ile)
     + '</div>';
