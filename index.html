@@ -6104,10 +6104,10 @@ function frRecalc(){
     } else { rowExpress.style.display = 'none'; frSet('fr-summary-express',''); }
   }
 
-  frRenderAbzuege(gesamtTag, gesamtMonat, persons);
+  frRenderAbzuege(gesamtTag, gesamtMonat, persons, divisor);
 }
 
-function frRenderAbzuege(gesamtTag, gesamtMonat, persons){
+function frRenderAbzuege(gesamtTag, gesamtMonat, persons, divisor){
   var on = frChecked('fr-abzuege-toggle');
   frShow('fr-abzuege-block', on);
   frShow('fr-verhinderung-wrap', on, 'flex');
@@ -6151,14 +6151,14 @@ function frRenderAbzuege(gesamtTag, gesamtMonat, persons){
   if(row){
     if(totalAbzuege > 0){
       row.style.display = 'grid';
-      frSet('fr-summary-abzuege-tag',   '- ' + frEuro(totalAbzuege / FR_DAYS));
+      frSet('fr-summary-abzuege-tag',   '- ' + frEuro(totalAbzuege / divisor));
       frSet('fr-summary-abzuege-monat', '- ' + frEuro(totalAbzuege));
     } else { row.style.display = 'none'; }
   }
 
   var finalMonth = gesamtMonat - totalAbzuege; if(finalMonth < 0) finalMonth = 0;
   frSet('fr-main-summary-title', 'Persönlicher Anteil nach allen Abzügen');
-  frSet('fr-summe-final-tag', frEuro(finalMonth / FR_DAYS));
+  frSet('fr-summe-final-tag', frEuro(finalMonth / divisor));
   frSet('fr-summe-final',     frEuro(finalMonth));
 }
 
