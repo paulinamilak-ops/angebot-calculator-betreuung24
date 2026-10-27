@@ -17,3 +17,6 @@ cv-data/
 
 # OS
 .DS_Store
+
+# Lokalne zrzuty i pliki robocze, nie naleza do repozytorium
+Claude outputs/

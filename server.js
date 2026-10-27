@@ -1077,6 +1077,51 @@ cron.schedule('0 2 * * *', async () => {
 });
 
 // ============================================================
+// PDF RENDERER
+// ============================================================
+// The browser builds the offer document; Chromium on this machine turns it
+// into a real PDF. html2canvas used to photograph the page, which left the
+// text unselectable and the phone number unclickable - the approved v9
+// layout requires both. Open to every signed-in role: franchise partners
+// and consultants print from the same renderer.
+const pdfRenderer = require('./pdf-renderer');
+
+const PDF_MAX_HTML = 4 * 1024 * 1024;
+
+app.post('/pdf/render', requireAuth, async (req, res) => {
+  const body = req.body || {};
+  const html = typeof body.html === 'string' ? body.html : '';
+
+  if (!html.trim())            return res.status(400).json({ error: 'empty_document' });
+  if (html.length > PDF_MAX_HTML) return res.status(413).json({ error: 'document_too_large' });
+
+  // Assets are pulled from this application only, never from the request.
+  const baseUrl = `${req.protocol}://${req.get('host')}/`;
+
+  try {
+    const { pdf, probe } = await pdfRenderer.renderOffer(html, baseUrl, { title: body.title });
+
+    // A cut-off offer must never reach a client. Report instead of shipping it.
+    if (probe.overflow && probe.overflow.length) {
+      console.warn('[pdf] content overflows the page', JSON.stringify(probe.overflow));
+      return res.status(422).json({ error: 'layout_overflow', pages: probe.overflow });
+    }
+    if (!probe.fontLoaded) console.warn('[pdf] Alan Sans did not load - check the static route');
+    if (!probe.imagesOK)   console.warn('[pdf] some images failed to load');
+
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Length', String(pdf.length));
+    res.set('Cache-Control', 'no-store');
+    return res.send(pdf);
+  } catch (err) {
+    const missing = /Cannot find module 'playwright'/.test(String(err && err.message));
+    console.error('[pdf] render failed:', err && err.message);
+    return res.status(missing ? 501 : 500)
+              .json({ error: missing ? 'renderer_unavailable' : 'render_failed' });
+  }
+});
+
+// ============================================================
 // STATIC FILES (fallback)
 // ============================================================
 // Serves index.html, fonts and images when no reverse proxy is in front

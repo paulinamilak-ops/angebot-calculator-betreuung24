@@ -1,0 +1,232 @@
+/* offer-print.css
+   Styl dokumentu oferty. Wydzielony z index.html, zeby ten sam arkusz
+   obslugiwal podglad w przegladarce i render po stronie serwera
+   (pdf-renderer.js). Nie mieszac tu stylow formularza. */
+
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('AlanSans-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+:root{
+  --navy:#0d1b3e;
+  --orange:#f7a800;
+  --bg:#ffffff;
+  --border-light:#e2e2e2;
+}
+
+/* ================== DOKUMENT PDF ==================
+   Osobny uklad tylko do pliku PDF. Na ekranie zostaje wzorzec Angebot;
+   tutaj oferta wyglada jak dokument handlowy, nie jak wypelniony formularz.
+   Kolory firmowe: granat --navy i pomaranczowy --orange. */
+#fr-pdf-doc{
+  position:fixed; left:-12000px; top:0; width:794px;
+  z-index:-1; pointer-events:none;
+}
+.fr-pdf-page{
+  width:794px; min-height:1123px; box-sizing:border-box;
+  background:#fff; color:var(--navy);
+  padding:52px 56px 44px;
+  display:flex; flex-direction:column;
+  font-family:'Alan Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+/* Pierwsza strona (sama oferta) wypelnia cala kartke: tresc jest podzielona
+   na piec blokow, ktore rozkladaja sie rownomiernie od naglowka do stopki,
+   a typografia jest o rzad wieksza niz na stronach opisowych. */
+/* Uklad przejety z dokumentu produkcyjnego: wysrodkowany tytul, sekcje
+   z pomaranczowym podkresleniem, trojkolumnowe wiersze z kolumnami
+   Pro Tag / Pro Monat. Zadnych szarych ramek - tylko cienkie linie. */
+.fr-pdf-center{ text-align:center; }
+.fr-pdf-kicker{ font-size:15px; font-weight:800; color:var(--navy); letter-spacing:0.2px; }
+.fr-pdf-angebot{ font-size:40px; font-weight:900; color:var(--orange); line-height:1.1; margin-top:4px; }
+.fr-pdf-kunde{ font-size:14px; font-weight:700; color:#5a6475; margin-top:10px; }
+
+.fr-pdf-sec{ margin-top:26px; }
+.fr-pdf-sec > .h{ font-size:15px; font-weight:900; color:var(--navy); display:inline-block; }
+.fr-pdf-sec > .h::after{
+  content:''; display:block; height:4px; border-radius:2px;
+  background:var(--orange); margin-top:4px; width:100%;
+}
+
+.fr-pdf-cols{
+  display:grid; grid-template-columns:1fr 110px 130px; gap:14px;
+  align-items:center; margin-top:14px;
+}
+.fr-pdf-pill{
+  font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  text-align:center; padding:5px 0; border-radius:999px; color:#fff;
+}
+.fr-pdf-pill.tag{ background:var(--orange); }
+.fr-pdf-pill.monat{ background:var(--navy); }
+
+.fr-pdf-line{
+  display:grid; grid-template-columns:1fr 110px 130px; gap:14px;
+  align-items:baseline; padding:10px 0; border-bottom:1px solid #edeff4;
+  font-size:13.5px;
+}
+.fr-pdf-line:last-child{ border-bottom:none; }
+.fr-pdf-line .n{ font-weight:600; color:var(--navy); }
+.fr-pdf-line .n .sub{ font-size:10.5px; color:#9aa1b1; font-weight:700; margin-top:2px; }
+.fr-pdf-line .t,
+.fr-pdf-line .m{ text-align:center; font-weight:800; white-space:nowrap; }
+.fr-pdf-line .t{ color:var(--orange); }
+.fr-pdf-line .m{ color:var(--navy); }
+.fr-pdf-line.strong .n{ font-weight:900; }
+.fr-pdf-line.minus .t,
+.fr-pdf-line.minus .m{ color:#16a34a; }
+.fr-pdf-line.rule{ border-top:2px solid var(--navy); border-bottom:none; padding-top:12px; }
+
+.fr-pdf-bar{
+  margin-top:22px; background:var(--navy); color:#fff; border-radius:14px;
+  padding:18px 22px; display:grid; grid-template-columns:1fr 110px 130px;
+  gap:14px; align-items:center;
+}
+.fr-pdf-bar .k{ font-size:14px; font-weight:900; }
+.fr-pdf-bar .once{ font-size:11.5px; font-weight:700; color:rgba(255,255,255,0.82); margin-top:4px; }
+.fr-pdf-bar .t,
+.fr-pdf-bar .m{ text-align:center; font-size:19px; font-weight:900; white-space:nowrap; }
+.fr-pdf-bar .t{ color:var(--orange); }
+
+.fr-pdf-body{ flex:1; display:flex; flex-direction:column; justify-content:space-between; }
+.fr-pdf-body > * { flex:none; }
+.fr-pdf-page--offer .fr-pdf-h1{ font-size:54px; }
+.fr-pdf-page--offer .fr-pdf-eyebrow{ font-size:12.5px; }
+.fr-pdf-page--offer .fr-pdf-for{ font-size:17px; margin-top:14px; }
+.fr-pdf-page--offer .fr-pdf-hero{ padding:32px 34px; border-radius:20px; }
+.fr-pdf-page--offer .fr-pdf-hero .name{ font-size:28px; }
+.fr-pdf-page--offer .fr-pdf-hero .monat{ font-size:38px; }
+.fr-pdf-page--offer .fr-pdf-hero .tag{ font-size:15px; }
+.fr-pdf-page--offer .fr-pdf-hero .k{ font-size:11.5px; }
+.fr-pdf-page--offer .fr-pdf-label{ font-size:12px; }
+.fr-pdf-page--offer .fr-pdf-row{ font-size:15.5px; padding:15px 2px; }
+.fr-pdf-page--offer .fr-pdf-row .sub{ font-size:12px; }
+.fr-pdf-page--offer .fr-pdf-total{ padding:30px 34px; border-radius:20px; }
+.fr-pdf-page--offer .fr-pdf-total .monat{ font-size:41px; }
+.fr-pdf-page--offer .fr-pdf-total .tag{ font-size:15px; }
+.fr-pdf-page--offer .fr-pdf-total .k{ font-size:12px; }
+.fr-pdf-page--offer .fr-pdf-total .once{ font-size:13.5px; }
+.fr-pdf-page--offer .fr-pdf-note{ font-size:11.5px; line-height:1.7; }
+.fr-pdf-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
+.fr-pdf-head .logo img{ height:40px; width:auto; display:block; }
+.fr-pdf-head .meta{ text-align:right; font-size:10px; color:#8a93a6; line-height:1.7; font-weight:600; }
+.fr-pdf-accent{ width:56px; height:5px; background:var(--orange); border-radius:3px; margin:40px 0 16px; }
+.fr-pdf-eyebrow{ font-size:11px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:#8a93a6; }
+.fr-pdf-h1{ font-size:42px; font-weight:900; line-height:1; letter-spacing:-0.6px; margin-top:6px; }
+.fr-pdf-h2{ font-size:27px; font-weight:900; line-height:1.15; margin-top:6px; }
+.fr-pdf-for{ font-size:15px; font-weight:700; color:#4b5565; margin-top:12px; }
+.fr-pdf-for span{ color:#9aa1b1; font-weight:600; }
+
+.fr-pdf-hero{
+  margin-top:30px; border-radius:18px; padding:24px 26px;
+  background:#f6f7fb; border-left:5px solid var(--orange);
+  display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+}
+.fr-pdf-hero .k{ font-size:10.5px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:#8a93a6; }
+.fr-pdf-hero .name{ font-size:23px; font-weight:900; margin-top:5px; }
+.fr-pdf-hero .nums{ text-align:right; white-space:nowrap; }
+.fr-pdf-hero .monat{ font-size:31px; font-weight:900; line-height:1; }
+.fr-pdf-hero .tag{ font-size:13px; font-weight:700; color:#6b7280; margin-top:5px; }
+
+.fr-pdf-label{
+  margin-top:34px; font-size:11px; font-weight:800; letter-spacing:1.5px;
+  text-transform:uppercase; display:flex; align-items:center; gap:10px;
+}
+.fr-pdf-label::before{ content:''; width:18px; height:3px; background:var(--orange); border-radius:2px; flex:none; }
+
+.fr-pdf-row{
+  display:flex; justify-content:space-between; align-items:baseline; gap:20px;
+  padding:11px 2px; border-bottom:1px solid #eceef4; font-size:13.5px;
+}
+.fr-pdf-row:last-child{ border-bottom:none; }
+.fr-pdf-row .v{ font-weight:800; white-space:nowrap; }
+.fr-pdf-row .sub{ font-size:10.5px; color:#9aa1b1; font-weight:700; }
+.fr-pdf-row.minus .v{ color:#16a34a; }
+
+.fr-pdf-total{
+  margin-top:28px; background:var(--navy); color:#fff; border-radius:18px;
+  padding:22px 26px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+}
+.fr-pdf-total .k{ font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--orange); }
+.fr-pdf-total .once{ font-size:12px; font-weight:700; color:rgba(255,255,255,0.82); margin-top:6px; }
+.fr-pdf-total .nums{ text-align:right; white-space:nowrap; }
+.fr-pdf-total .monat{ font-size:33px; font-weight:900; line-height:1; }
+.fr-pdf-total .tag{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.75); margin-top:5px; }
+
+.fr-pdf-note{
+  margin-top:24px; font-size:10px; line-height:1.65; color:#6b7280;
+  border-left:3px solid #e3e6ef; padding-left:14px;
+}
+.fr-pdf-note b{ color:var(--navy); }
+
+.fr-pdf-item{ margin-top:20px; break-inside:avoid; }
+.fr-pdf-item .t{ font-size:14.5px; font-weight:900; display:flex; align-items:center; gap:10px; }
+.fr-pdf-item .t::before{ content:''; width:8px; height:8px; border-radius:2px; background:var(--orange); flex:none; }
+.fr-pdf-item .b{ font-size:12px; line-height:1.7; color:#4b5565; margin-top:7px; padding-left:18px; }
+.fr-pdf-item .b ul{ margin:0; padding:0; list-style:none; }
+.fr-pdf-item .b li{ position:relative; padding-left:15px; margin:4px 0; }
+.fr-pdf-item .b li::before{
+  content:''; position:absolute; left:0; top:7px; width:5px; height:5px;
+  border-radius:50%; background:#cdd3e0;
+}
+
+.fr-pdf-foot{
+  margin-top:auto; padding-top:20px; border-top:1px solid #eceef4;
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:9.5px; color:#9aa1b1; font-weight:600;
+}
+
+/* ---- tryb serwerowy: kartka A4 bez marginesow przegladarki ----
+   Na ekranie #fr-pdf-doc stoi poza widokiem; w rendererze jest jedyna
+   trescia strony, wiec wraca do normalnego przeplywu. */
+@page { size: A4; margin: 0; }
+html.pdf-render, html.pdf-render body {
+  margin:0; padding:0; background:#fff;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+html.pdf-render #fr-pdf-doc{
+  position:static; left:auto; top:auto; width:auto; z-index:auto;
+}
+html.pdf-render .fr-pdf-page{
+  width:794px; height:1123px; min-height:1123px; overflow:hidden;
+  break-after:page; page-break-after:always;
+}
+html.pdf-render .fr-pdf-page:last-child{
+  break-after:auto; page-break-after:auto;
+}
