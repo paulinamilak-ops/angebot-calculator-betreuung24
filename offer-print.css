@@ -89,6 +89,21 @@
 .fr-pdf-h2{ font-size:27px; font-weight:900; line-height:1.15; margin-top:6px; }
 
 .fr-pdf-item{ margin-top:20px; break-inside:avoid; }
+/* Wybrany pakiet jezykowy - to samo podswietlenie co wybrana usluga na
+   stronie 1: kolor z alfa i cienki obrys, nigdy opacity. Ujemne marginesy
+   boczne sprawiaja, ze tekst zostaje w tej samej kolumnie co pozostale
+   pakiety, a tlo wychodzi poza nia. */
+.fr-pdf-item--sel{
+  background:var(--v9-pale); border:1px solid var(--v9-sel-line);
+  border-radius:6px; padding:12px 14px 14px;
+  margin-left:-14px; margin-right:-14px;
+}
+.fr-pdf-item--sel .t{ font-weight:900; }
+.fr-pdf-item--sel .sel-label{
+  margin:4px 0 0 18px; font-size:10px; font-weight:800;
+  letter-spacing:.3px; color:var(--navy);
+}
+.fr-pdf-item--sel .b{ margin-top:5px; }
 .fr-pdf-item .t{ font-size:14.5px; font-weight:900; display:flex; align-items:center; gap:10px; }
 .fr-pdf-item .t::before{ content:''; width:8px; height:8px; border-radius:2px; background:var(--orange); flex:none; }
 .fr-pdf-item .b{ font-size:12px; line-height:1.7; color:#4b5565; margin-top:7px; padding-left:18px; }

@@ -6099,12 +6099,17 @@ function frPdfFoot(nr, ile){
 
 /* Strony opisowe przepisane z zakladki Angebot, zeby tresc byla w jednym
    miejscu: zmiana opisu tam zmienia go i w ofercie franczyzowej. */
-function frPdfOpisy(selKarta, selTytul, selTresc){
+function frPdfOpisy(selKarta, selTytul, selTresc, wybrany){
   var out = '';
   document.querySelectorAll(selKarta).forEach(function(card){
     var t = card.querySelector(selTytul);
     var b = card.querySelector(selTresc);
     if(!t) return;
+    /* Wzorzec v9 wyroznia pakiet jezykowy, ktory oferta przedstawia.
+       Dopasowanie po nazwie produktu: tytul karty w zakladce Angebot brzmi
+       dokladnie tak samo jak etykieta pakietu w cenniku. */
+    var jestWybrany = !!wybrany &&
+      t.textContent.replace(/\s+/g,' ').trim() === String(wybrany).replace(/\s+/g,' ').trim();
     /* Kopia bez klas: inaczej style z zakladki Angebot (np. wlasne punktory
        .services-list li) nakladaja sie na uklad dokumentu i punktory
        pojawiaja sie podwojnie. */
@@ -6116,7 +6121,9 @@ function frPdfOpisy(selKarta, selTytul, selTresc){
       kopia.querySelectorAll('[style]').forEach(function(el){ el.removeAttribute('style'); });
       tresc = (kopia.tagName === 'UL') ? kopia.outerHTML : kopia.innerHTML;
     }
-    out += '<div class="fr-pdf-item"><div class="t">' + frPdfEsc(t.textContent.trim()) + '</div>'
+    out += '<div class="fr-pdf-item' + (jestWybrany ? ' fr-pdf-item--sel' : '') + '">'
+         + '<div class="t">' + frPdfEsc(t.textContent.trim()) + '</div>'
+         + (jestWybrany ? '<div class="sel-label">Ihr gewähltes Paket</div>' : '')
          + '<div class="b">' + tresc + '</div></div>';
   });
   return out;
@@ -6384,7 +6391,8 @@ function frBuildPdfDoc(){
 
   var s2 = strona(2, 'Sprachpakete — Produktbeschreibung',
     frPdfOpisy('#tab-angebot .products-section .products-list .product-card',
-               '.product-title', '.product-text'));
+               '.product-title', '.product-text',
+               (FR_PRODUCTS[frPaket()] || {}).label));
   var s3 = strona(3, 'Allgemeine Produktbeschreibung',
     frPdfOpisy('#tab-angebot .services-section .service-card',
                '.service-card-title', '.services-list'));
