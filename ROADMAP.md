@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **28.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`__COMMIT__`** · wypchnięty na GitHub
+Ostatni commit **`49a954e`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -16,6 +16,23 @@ Ostatni commit **`__COMMIT__`** · wypchnięty na GitHub
 ---
 
 ## Sesja 28.10.2026
+
+### Commit `49a954e` — wybrany pakiet językowy wyróżniony na stronie 2
+
+**Uwaga PO:** wzorzec v9 wyróżnia pakiet, który oferta przedstawia; u nas
+strona 2 była płaską listą czterech opisów.
+
+- [x] Wybrany pakiet dostaje to samo podświetlenie co wybrana usługa na
+      stronie 1 — kolor z alfą i cienki obrys, **nigdy `opacity`** —
+      pogrubiony tytuł i podpis „Ihr gewähltes Paket".
+- [x] Dopasowanie po nazwie produktu: tytuł karty w zakładce Angebot brzmi
+      dokładnie tak samo jak etykieta pakietu w cenniku, więc nie powstaje
+      drugie źródło prawdy.
+- [x] `frPdfOpisy()` przyjmuje czwarty argument z nazwą wybranego pakietu.
+      Strony 3 i 4 wołają ją bez niego, więc zostają bez zmian.
+
+To **część** kroku 7.4. Reszta 7.4 — strony 2–4 w układzie v9 (nagłówek,
+stopka, typografia) i blok kontaktowy „Wir sind für Sie da" — nadal czeka.
 
 ### Cennik z 28.10.2026 — jeden dla obu modułów
 
@@ -184,7 +201,7 @@ z 21.10.2026) leży w folderze „CV oferty", **poza repozytorium**.
 | 7.1 | Decyzje: mechanizm PDF i zakres modułów | ✅ B + oba moduły |
 | 7.2 | Silnik PDF na serwerze, styl wydzielony do pliku | ✅ `2147256` |
 | 7.3 | Strona 1 w układzie v9, na danych z kalkulatora | ✅ `724297c` |
-| 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | ⬜ **następne** |
+| 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | 🔄 podświetlenie pakietu zrobione (`49a954e`); zostaje układ v9 stron 2–4 i blok kontaktowy |
 | 7.5 | To samo w zakładce Angebot | ⬜ |
 | 7.6 | Odtworzenie obu przykładów i porównanie ze wzorcami | ⬜ |
 
