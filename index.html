@@ -3332,10 +3332,10 @@ const DAYS_IN_MONTH = 30;
    package from the price list itself (monat / tag), exactly as in the
    franchise tab, so a daily rate never contradicts the printed list. */
 const products = {
-  bronze:{ monat:2700, tag:90,  label:"Seniorenbetreuung Bronze" },
-  silber:{ monat:3100, tag:103, label:"Seniorenbetreuung Silber" },
-  gold:  { monat:3600, tag:120, label:"Seniorenbetreuung Gold" },
-  platin:{ monat:3900, tag:130, label:"Seniorenbetreuung Platin" }
+  bronze:{ monat:2600, tag:87,  label:"Seniorenbetreuung Bronze" },
+  silber:{ monat:2900, tag:97,  label:"Seniorenbetreuung Silber" },
+  gold:  { monat:3300, tag:110, label:"Seniorenbetreuung Gold" },
+  platin:{ monat:3600, tag:120, label:"Seniorenbetreuung Platin" }
 };
 const pflegegeldMap = { 0:0,1:0,2:347,3:599,4:800,5:990 };
 const VERHIND=294, STEUER=333;
@@ -5786,14 +5786,15 @@ document.addEventListener('DOMContentLoaded', function(){
    reach the client's copy. Amounts are recomputed on the server when an
    offer is saved, so a stored offer can never disagree with the price list. */
 
-/* Licence partner price list, 18.05.2026. Monthly price is the binding
-   figure; the month-to-day divisor is fixed per package and derived from the
-   list itself, so a zero commission reproduces 77 / 93 / 107 / 120 exactly.
+/* Price list of 28.10.2026 - the same one the Angebot tab uses, by PO
+   decision of 28.10.2026. Monthly price is the binding figure; the
+   month-to-day divisor is fixed per package and derived from the list
+   itself, so a zero commission reproduces 87 / 97 / 110 / 120 exactly.
    Overwritten at runtime by GET /franchise/pricing. */
 var FR_PRODUCTS = {
-  bronze: { monat:2300, tag:77,  label:'Seniorenbetreuung Bronze' },
-  silber: { monat:2800, tag:93,  label:'Seniorenbetreuung Silber' },
-  gold:   { monat:3200, tag:107, label:'Seniorenbetreuung Gold'   },
+  bronze: { monat:2600, tag:87,  label:'Seniorenbetreuung Bronze' },
+  silber: { monat:2900, tag:97,  label:'Seniorenbetreuung Silber' },
+  gold:   { monat:3300, tag:110, label:'Seniorenbetreuung Gold'   },
   platin: { monat:3600, tag:120, label:'Seniorenbetreuung Platin' }
 };
 var FR_ADDONS = {

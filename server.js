@@ -815,16 +815,20 @@ app.delete('/cv/:id',    requireApiKey, async (req, res) => {
 });
 
 // ============================================================
-// FRANCHISE PRICING (licence partner price list, 18.05.2026)
+// FRANCHISE PRICING (price list of 28.10.2026)
 // ============================================================
+// Since 28.10.2026 the franchise partner buys at the same price the central
+// office sells for (PO decision, 28.10.2026): one price list now covers both
+// modules, and the partner earns on the commission alone. Until then the
+// licence partner list of 18.05.2026 applied (2300/2800/3200/3600).
 // The monthly price is the binding figure. The month-to-day divisor is
 // fixed per package and derived from the price list itself, so a zero
 // commission reproduces the exact daily rates printed in the PDF
-// (77 / 93 / 107 / 120 EUR).
+// (87 / 97 / 110 / 120 EUR).
 const FRANCHISE_PRODUCTS = {
-  bronze: { monat: 2300, tag: 77,  label: 'Seniorenbetreuung Bronze' },
-  silber: { monat: 2800, tag: 93,  label: 'Seniorenbetreuung Silber' },
-  gold:   { monat: 3200, tag: 107, label: 'Seniorenbetreuung Gold'   },
+  bronze: { monat: 2600, tag: 87,  label: 'Seniorenbetreuung Bronze' },
+  silber: { monat: 2900, tag: 97,  label: 'Seniorenbetreuung Silber' },
+  gold:   { monat: 3300, tag: 110, label: 'Seniorenbetreuung Gold'   },
   platin: { monat: 3600, tag: 120, label: 'Seniorenbetreuung Platin' }
 };
 
