@@ -1,7 +1,12 @@
 /* offer-print.css
    Styl dokumentu oferty. Wydzielony z index.html, zeby ten sam arkusz
    obslugiwal podglad w przegladarce i render po stronie serwera
-   (pdf-renderer.js). Nie mieszac tu stylow formularza. */
+   (pdf-renderer.js). Nie mieszac tu stylow formularza.
+
+   Strona 1 jest w ukladzie v9 (klasy z przedrostkiem .v9-). Przedrostek nie
+   jest ozdoba: dokument #fr-pdf-doc siedzi w DOM-ie index.html, wiec nazwy
+   w rodzaju .total czy .trust zderzylyby sie ze stylami zakladek.
+   Strony 2-4 zostaja na starym ukladzie do kroku 7.4. */
 
 @font-face {
   font-family: 'Alan Sans';
@@ -50,12 +55,20 @@
   --orange:#f7a800;
   --bg:#ffffff;
   --border-light:#e2e2e2;
+
+  /* Kolory wzorca v9 roznia sie o wlos od firmowych (#142347 / #f5a400).
+     Decyzja, ktore sa wiazace, nalezy do PO - do tego czasu oferta idzie
+     na kolorach aplikacji. Zmiana to podmiana dwoch wartosci wyzej. */
+  --v9-ink:#24324a;
+  --v9-muted:#5c697d;
+  --v9-line:#dce3ea;
+  --v9-pale:rgba(247,168,0,.08);
+  --v9-sel-line:rgba(247,168,0,.28);
 }
 
 /* ================== DOKUMENT PDF ==================
    Osobny uklad tylko do pliku PDF. Na ekranie zostaje wzorzec Angebot;
-   tutaj oferta wyglada jak dokument handlowy, nie jak wypelniony formularz.
-   Kolory firmowe: granat --navy i pomaranczowy --orange. */
+   tutaj oferta wyglada jak dokument handlowy, nie jak wypelniony formularz. */
 #fr-pdf-doc{
   position:fixed; left:-12000px; top:0; width:794px;
   z-index:-1; pointer-events:none;
@@ -67,133 +80,13 @@
   display:flex; flex-direction:column;
   font-family:'Alan Sans','Segoe UI',system-ui,-apple-system,sans-serif;
 }
-/* Pierwsza strona (sama oferta) wypelnia cala kartke: tresc jest podzielona
-   na piec blokow, ktore rozkladaja sie rownomiernie od naglowka do stopki,
-   a typografia jest o rzad wieksza niz na stronach opisowych. */
-/* Uklad przejety z dokumentu produkcyjnego: wysrodkowany tytul, sekcje
-   z pomaranczowym podkresleniem, trojkolumnowe wiersze z kolumnami
-   Pro Tag / Pro Monat. Zadnych szarych ramek - tylko cienkie linie. */
-.fr-pdf-center{ text-align:center; }
-.fr-pdf-kicker{ font-size:15px; font-weight:800; color:var(--navy); letter-spacing:0.2px; }
-.fr-pdf-angebot{ font-size:40px; font-weight:900; color:var(--orange); line-height:1.1; margin-top:4px; }
-.fr-pdf-kunde{ font-size:14px; font-weight:700; color:#5a6475; margin-top:10px; }
 
-.fr-pdf-sec{ margin-top:26px; }
-.fr-pdf-sec > .h{ font-size:15px; font-weight:900; color:var(--navy); display:inline-block; }
-.fr-pdf-sec > .h::after{
-  content:''; display:block; height:4px; border-radius:2px;
-  background:var(--orange); margin-top:4px; width:100%;
-}
-
-.fr-pdf-cols{
-  display:grid; grid-template-columns:1fr 110px 130px; gap:14px;
-  align-items:center; margin-top:14px;
-}
-.fr-pdf-pill{
-  font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
-  text-align:center; padding:5px 0; border-radius:999px; color:#fff;
-}
-.fr-pdf-pill.tag{ background:var(--orange); }
-.fr-pdf-pill.monat{ background:var(--navy); }
-
-.fr-pdf-line{
-  display:grid; grid-template-columns:1fr 110px 130px; gap:14px;
-  align-items:baseline; padding:10px 0; border-bottom:1px solid #edeff4;
-  font-size:13.5px;
-}
-.fr-pdf-line:last-child{ border-bottom:none; }
-.fr-pdf-line .n{ font-weight:600; color:var(--navy); }
-.fr-pdf-line .n .sub{ font-size:10.5px; color:#9aa1b1; font-weight:700; margin-top:2px; }
-.fr-pdf-line .t,
-.fr-pdf-line .m{ text-align:center; font-weight:800; white-space:nowrap; }
-.fr-pdf-line .t{ color:var(--orange); }
-.fr-pdf-line .m{ color:var(--navy); }
-.fr-pdf-line.strong .n{ font-weight:900; }
-.fr-pdf-line.minus .t,
-.fr-pdf-line.minus .m{ color:#16a34a; }
-.fr-pdf-line.rule{ border-top:2px solid var(--navy); border-bottom:none; padding-top:12px; }
-
-.fr-pdf-bar{
-  margin-top:22px; background:var(--navy); color:#fff; border-radius:14px;
-  padding:18px 22px; display:grid; grid-template-columns:1fr 110px 130px;
-  gap:14px; align-items:center;
-}
-.fr-pdf-bar .k{ font-size:14px; font-weight:900; }
-.fr-pdf-bar .once{ font-size:11.5px; font-weight:700; color:rgba(255,255,255,0.82); margin-top:4px; }
-.fr-pdf-bar .t,
-.fr-pdf-bar .m{ text-align:center; font-size:19px; font-weight:900; white-space:nowrap; }
-.fr-pdf-bar .t{ color:var(--orange); }
-
-.fr-pdf-body{ flex:1; display:flex; flex-direction:column; justify-content:space-between; }
-.fr-pdf-body > * { flex:none; }
-.fr-pdf-page--offer .fr-pdf-h1{ font-size:54px; }
-.fr-pdf-page--offer .fr-pdf-eyebrow{ font-size:12.5px; }
-.fr-pdf-page--offer .fr-pdf-for{ font-size:17px; margin-top:14px; }
-.fr-pdf-page--offer .fr-pdf-hero{ padding:32px 34px; border-radius:20px; }
-.fr-pdf-page--offer .fr-pdf-hero .name{ font-size:28px; }
-.fr-pdf-page--offer .fr-pdf-hero .monat{ font-size:38px; }
-.fr-pdf-page--offer .fr-pdf-hero .tag{ font-size:15px; }
-.fr-pdf-page--offer .fr-pdf-hero .k{ font-size:11.5px; }
-.fr-pdf-page--offer .fr-pdf-label{ font-size:12px; }
-.fr-pdf-page--offer .fr-pdf-row{ font-size:15.5px; padding:15px 2px; }
-.fr-pdf-page--offer .fr-pdf-row .sub{ font-size:12px; }
-.fr-pdf-page--offer .fr-pdf-total{ padding:30px 34px; border-radius:20px; }
-.fr-pdf-page--offer .fr-pdf-total .monat{ font-size:41px; }
-.fr-pdf-page--offer .fr-pdf-total .tag{ font-size:15px; }
-.fr-pdf-page--offer .fr-pdf-total .k{ font-size:12px; }
-.fr-pdf-page--offer .fr-pdf-total .once{ font-size:13.5px; }
-.fr-pdf-page--offer .fr-pdf-note{ font-size:11.5px; line-height:1.7; }
+/* ---------- strony opisowe 2-4 (uklad sprzed v9) ---------- */
 .fr-pdf-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
 .fr-pdf-head .logo img{ height:40px; width:auto; display:block; }
 .fr-pdf-head .meta{ text-align:right; font-size:10px; color:#8a93a6; line-height:1.7; font-weight:600; }
 .fr-pdf-accent{ width:56px; height:5px; background:var(--orange); border-radius:3px; margin:40px 0 16px; }
-.fr-pdf-eyebrow{ font-size:11px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:#8a93a6; }
-.fr-pdf-h1{ font-size:42px; font-weight:900; line-height:1; letter-spacing:-0.6px; margin-top:6px; }
 .fr-pdf-h2{ font-size:27px; font-weight:900; line-height:1.15; margin-top:6px; }
-.fr-pdf-for{ font-size:15px; font-weight:700; color:#4b5565; margin-top:12px; }
-.fr-pdf-for span{ color:#9aa1b1; font-weight:600; }
-
-.fr-pdf-hero{
-  margin-top:30px; border-radius:18px; padding:24px 26px;
-  background:#f6f7fb; border-left:5px solid var(--orange);
-  display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
-}
-.fr-pdf-hero .k{ font-size:10.5px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:#8a93a6; }
-.fr-pdf-hero .name{ font-size:23px; font-weight:900; margin-top:5px; }
-.fr-pdf-hero .nums{ text-align:right; white-space:nowrap; }
-.fr-pdf-hero .monat{ font-size:31px; font-weight:900; line-height:1; }
-.fr-pdf-hero .tag{ font-size:13px; font-weight:700; color:#6b7280; margin-top:5px; }
-
-.fr-pdf-label{
-  margin-top:34px; font-size:11px; font-weight:800; letter-spacing:1.5px;
-  text-transform:uppercase; display:flex; align-items:center; gap:10px;
-}
-.fr-pdf-label::before{ content:''; width:18px; height:3px; background:var(--orange); border-radius:2px; flex:none; }
-
-.fr-pdf-row{
-  display:flex; justify-content:space-between; align-items:baseline; gap:20px;
-  padding:11px 2px; border-bottom:1px solid #eceef4; font-size:13.5px;
-}
-.fr-pdf-row:last-child{ border-bottom:none; }
-.fr-pdf-row .v{ font-weight:800; white-space:nowrap; }
-.fr-pdf-row .sub{ font-size:10.5px; color:#9aa1b1; font-weight:700; }
-.fr-pdf-row.minus .v{ color:#16a34a; }
-
-.fr-pdf-total{
-  margin-top:28px; background:var(--navy); color:#fff; border-radius:18px;
-  padding:22px 26px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
-}
-.fr-pdf-total .k{ font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--orange); }
-.fr-pdf-total .once{ font-size:12px; font-weight:700; color:rgba(255,255,255,0.82); margin-top:6px; }
-.fr-pdf-total .nums{ text-align:right; white-space:nowrap; }
-.fr-pdf-total .monat{ font-size:33px; font-weight:900; line-height:1; }
-.fr-pdf-total .tag{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.75); margin-top:5px; }
-
-.fr-pdf-note{
-  margin-top:24px; font-size:10px; line-height:1.65; color:#6b7280;
-  border-left:3px solid #e3e6ef; padding-left:14px;
-}
-.fr-pdf-note b{ color:var(--navy); }
 
 .fr-pdf-item{ margin-top:20px; break-inside:avoid; }
 .fr-pdf-item .t{ font-size:14.5px; font-weight:900; display:flex; align-items:center; gap:10px; }
@@ -211,6 +104,245 @@
   display:flex; justify-content:space-between; align-items:baseline;
   font-size:9.5px; color:#9aa1b1; font-weight:600;
 }
+
+/* ================== STRONA 1 — UKLAD v9 ==================
+   Odwzorowanie reference/silber.html z paczki wdrozeniowej. Wymiary sa
+   w milimetrach, bo kartka jest w milimetrach - dzieki temu marginesy
+   zgadzaja sie z PDF-em bez przeliczania na piksele.
+   Zakazane we wzorcu: opacity na kontenerze, pionowe kolorowe paski,
+   cienie, gradienty, powiekszone sumy. */
+.fr-pdf-page--offer{
+  display:block; position:relative; overflow:hidden;
+  padding:15mm 17mm 0;
+  color:var(--v9-ink);
+  font-size:11.2pt; line-height:1.45;
+}
+.fr-pdf-page--offer *{ box-sizing:border-box; }
+.fr-pdf-page--offer p,
+.fr-pdf-page--offer h1,
+.fr-pdf-page--offer h2{ margin:0; }
+.fr-pdf-page--offer h1,
+.fr-pdf-page--offer h2{ color:var(--navy); font-weight:650; }
+.fr-pdf-page--offer a{ color:inherit; text-decoration:none; }
+
+/* ---------- naglowek ---------- */
+.v9-head{
+  height:16mm; display:flex; justify-content:space-between; align-items:flex-start;
+  border-bottom:1px solid var(--v9-line); padding-bottom:6mm;
+}
+.v9-logo{ width:43mm; height:auto; max-height:10mm; object-fit:contain; object-position:left center; }
+.v9-head-contact{
+  text-align:right; display:flex; flex-direction:column;
+  font-size:9.2pt; line-height:1.5; color:var(--v9-muted);
+}
+
+.v9-main{ padding-top:7mm; }
+
+/* ---------- naglowek oferty z adresatem ---------- */
+.v9-heading{ display:flex; justify-content:space-between; align-items:center; gap:8mm; }
+.v9-heading h1{ font-size:31pt; line-height:1.03; letter-spacing:-.025em; }
+.v9-recipient{
+  border-left:1px solid var(--v9-line); padding:1mm 0 1mm 5mm; min-width:48mm;
+  display:flex; flex-direction:column; gap:1.5mm;
+}
+.v9-recipient span,
+.v9-recipient small{ font-size:9pt; line-height:1.25; color:var(--v9-muted); }
+.v9-recipient strong{ font-size:15.5pt; line-height:1.15; color:var(--navy); font-weight:650; }
+
+.v9-claim{ font-size:15pt; line-height:1.2; font-weight:500; letter-spacing:-.01em; color:var(--navy); margin-top:4mm; }
+.v9-subtitle{ font-size:10.3pt; color:var(--v9-muted); margin-top:1.2mm; margin-bottom:4mm; }
+
+/* ---------- naglowki sekcji z firmowym podkresleniem ----------
+   Podkreslenie to ten sam rysunek, ktory jest pod logo (underline-curve.png).
+   Szerokosc bierze sie z dlugosci napisu: opakowanie jest inline-block,
+   obrazek dostaje 100% jego szerokosci - tak samo dziala .section-title
+   w zakladkach aplikacji. */
+.v9-h2{
+  display:inline-block; font-size:11.3pt; line-height:1.2;
+  padding-bottom:3.4mm;
+  background:url('underline-curve.png') no-repeat left bottom;
+  background-size:100% 1.7mm;
+}
+
+/* ---------- tabele cenowe ---------- */
+.v9-prices{ margin-top:3mm; }
+.v9-prices table{
+  width:100%; border-collapse:collapse; table-layout:fixed;
+  font-size:10.1pt; line-height:1.25; font-variant-numeric:tabular-nums;
+}
+.v9-prices col.desc{ width:62%; }
+.v9-prices col:nth-child(2){ width:15%; }
+.v9-prices col:nth-child(3){ width:23%; }
+/* 450 we wzorcu to font zmienny; przy krojach statycznych 450 zaokragla sie
+   w gore do 500, wiec etykiety kolumn dostaja 400 i zostaja lekkie. */
+.v9-prices th{
+  font-size:7.8pt; color:var(--v9-muted); font-weight:400;
+  text-align:right; vertical-align:bottom; padding-bottom:1.6mm;
+}
+.v9-prices th:first-child{ text-align:left; padding-right:2mm; vertical-align:bottom; }
+.v9-prices th:last-child,
+.v9-prices td:last-child{ padding-right:3mm; }
+.v9-prices td{ padding:1.7mm 0; vertical-align:middle; border-bottom:.5px solid var(--v9-line); }
+.v9-prices tr:last-child td{ border-bottom:0; }
+.v9-prices td:first-child{ padding-right:3mm; }
+.v9-prices td:nth-child(n+2){ text-align:right; font-weight:550; }
+.v9-prices td:last-child{ color:var(--navy); }
+.v9-prices td small{
+  display:inline; font-size:7.8pt; font-weight:400; line-height:1.2;
+  margin-left:1mm; color:var(--v9-muted);
+}
+
+/* wybrany produkt - podswietlenie kolorem z alfa, nigdy opacity */
+.v9-selected table{ border-collapse:separate; border-spacing:0; }
+.v9-selected td{
+  font-size:11pt; font-weight:600; background:var(--v9-pale);
+  padding-top:2.4mm; padding-bottom:2.4mm; border-top:1px solid var(--v9-sel-line);
+}
+.v9-selected tr:last-child td{ border-bottom:1px solid var(--v9-sel-line); }
+.v9-selected td:first-child{
+  padding-left:3mm; border-left:1px solid var(--v9-sel-line);
+  border-radius:1.5mm 0 0 1.5mm;
+}
+.v9-selected td:last-child{ border-right:1px solid var(--v9-sel-line); border-radius:0 1.5mm 1.5mm 0; }
+
+.v9-summary td{ padding-top:1.4mm; padding-bottom:1.4mm; }
+.v9-summary .v9-subtotal td{ font-weight:650; }
+.v9-summary-product{ display:block; font-size:9pt; font-weight:400; color:var(--v9-muted); margin-top:.6mm; }
+.v9-minus td:nth-child(n+2){ white-space:nowrap; }
+
+/* ---------- odliczenia ---------- */
+.v9-deductions{ margin-top:2.5mm; }
+.v9-deductions .v9-h2{ margin-bottom:1mm; }
+.v9-ded-box{
+  background:var(--v9-pale); border:1px solid var(--v9-sel-line);
+  border-radius:1.5mm; padding:1.6mm 3mm;
+}
+.v9-ded-row{
+  display:flex; gap:4mm; align-items:baseline; font-size:10.1pt; line-height:1.35;
+  padding:.9mm 0;
+}
+.v9-ded-row + .v9-ded-row{ border-top:.5px solid var(--v9-sel-line); }
+.v9-ded-row > b{ font-weight:600; color:var(--navy); }
+.v9-ded-row > span{ font-size:9.5pt; color:var(--v9-muted); }
+.v9-ded-row > span b{ font-weight:500; color:var(--v9-ink); }
+.v9-ded-row > strong{ margin-left:auto; font-weight:600; white-space:nowrap; color:var(--navy); }
+
+/* ---------- kwota koncowa ---------- */
+.v9-total{
+  display:flex; align-items:center; gap:5mm; background:var(--navy); color:#fff;
+  margin-top:3mm; padding:3.2mm 4mm; border-radius:2mm;
+}
+.v9-total > div:first-child{ flex:1; }
+.v9-total > div:first-child > span{ font-size:11.3pt; font-weight:600; line-height:1.2; display:block; }
+.v9-total small{ display:block; font-size:8.8pt; color:#dfe5f0; margin-top:.6mm; }
+.v9-total-daily,
+.v9-total-monthly{ text-align:right; white-space:nowrap; }
+.v9-total-daily strong,
+.v9-total-monthly strong{ font-size:11.5pt; line-height:1.2; font-weight:550; color:#fff; }
+.v9-total-daily small,
+.v9-total-monthly small{ font-size:8pt; letter-spacing:.02em; margin-bottom:.8mm; margin-top:0; }
+
+.v9-share-note{ font-size:8.5pt; color:var(--v9-muted); margin-top:2mm; line-height:1.4; }
+
+/* ---------- opinie ----------
+   Same logotypy i odeslanie do zrodla. Bez ocen liczbowych i bez cytatow,
+   ktorych nie da sie zweryfikowac. */
+.v9-trust{
+  display:flex; align-items:center; border-top:1px solid var(--v9-line);
+  padding:2.5mm 0 2mm; gap:4mm; margin-top:3mm;
+}
+.v9-trust-intro{ flex:1; display:flex; flex-direction:column; gap:1mm; }
+.v9-trust-intro strong{ font-size:9.7pt; color:var(--navy); font-weight:650; }
+.v9-trust-intro span{ font-size:8.5pt; color:var(--v9-muted); }
+.v9-trust-brand{
+  width:38mm; display:grid; grid-template-rows:10.5mm auto;
+  align-items:center; justify-items:start; gap:1.6mm;
+}
+.v9-trust-brand img{ width:35mm; height:10.5mm; object-fit:contain; object-position:left center; }
+.v9-trust-brand:last-child{ width:31mm; }
+.v9-trust-brand:last-child img{ width:30mm; height:10.5mm; }
+.v9-trust-brand span{ font-size:7.5pt; line-height:1.3; color:var(--navy); white-space:nowrap; }
+
+/* ---------- zastrzezenia ---------- */
+.v9-legal{ margin-top:3mm; font-size:8.5pt; line-height:1.38; color:#576378; }
+.v9-legal p + p{ margin-top:1mm; }
+
+/* ---------- stopka ---------- */
+.v9-foot{
+  position:absolute; left:17mm; right:17mm; bottom:10mm;
+  border-top:1px solid var(--v9-line); padding-top:3mm;
+  display:flex; justify-content:space-between; gap:5mm; align-items:flex-end;
+  color:var(--v9-muted); font-size:7.3pt; line-height:1.45;
+}
+.v9-foot > div{ display:flex; flex-direction:column; }
+.v9-folio-title{ font-size:7.7pt; margin-top:.8mm; }
+.v9-folio{ font-size:10pt; font-weight:650; color:var(--navy); white-space:nowrap; }
+.v9-folio i{ font-style:normal; font-weight:400; color:var(--v9-muted); }
+
+/* ---------- warianty zageszczenia ----------
+   Oferta z kompletem dodatkow, dwoma pacjentami i pelnymi odliczeniami jest
+   o kilkanascie milimetrow wyzsza od wzorca. frFitPage1() mierzy gotowa
+   strone i dokłada te klasy tylko wtedy, gdy tresc nie miesci sie na kartce
+   - krotka oferta zostaje w proporcjach wzorca. */
+.v9-tight .v9-heading h1{ font-size:27pt; }
+.v9-tight .v9-claim{ font-size:13.5pt; margin-top:3mm; }
+.v9-tight .v9-subtitle{ margin-bottom:3mm; }
+.v9-tight .v9-main{ padding-top:5mm; }
+.v9-tight .v9-prices{ margin-top:2.2mm; }
+.v9-tight .v9-prices td{ padding-top:1.25mm; padding-bottom:1.25mm; }
+.v9-tight .v9-selected td{ padding-top:1.9mm; padding-bottom:1.9mm; }
+.v9-tight .v9-summary td{ padding-top:1.05mm; padding-bottom:1.05mm; }
+.v9-tight .v9-deductions{ margin-top:2mm; }
+.v9-tight .v9-ded-row{ padding:.6mm 0; }
+.v9-tight .v9-total{ margin-top:2.2mm; padding:2.6mm 4mm; }
+.v9-tight .v9-trust{ margin-top:2mm; padding:2mm 0 1.5mm; }
+.v9-tight .v9-legal{ margin-top:2mm; }
+
+.v9-tighter .v9-heading h1{ font-size:24pt; }
+.v9-tighter .v9-recipient strong{ font-size:13.5pt; }
+.v9-tighter .v9-claim{ font-size:12.5pt; margin-top:2.4mm; }
+.v9-tighter .v9-subtitle{ font-size:9.6pt; margin-bottom:2.4mm; }
+.v9-tighter .v9-main{ padding-top:4mm; }
+.v9-tighter .v9-prices{ margin-top:1.8mm; }
+.v9-tighter .v9-prices table{ font-size:9.5pt; }
+.v9-tighter .v9-prices td{ padding-top:.95mm; padding-bottom:.95mm; }
+.v9-tighter .v9-selected td{ font-size:10.3pt; padding-top:1.5mm; padding-bottom:1.5mm; }
+.v9-tighter .v9-summary td{ padding-top:.8mm; padding-bottom:.8mm; }
+.v9-tighter .v9-ded-row{ padding:.4mm 0; font-size:9.5pt; }
+.v9-tighter .v9-total{ margin-top:1.8mm; padding:2.2mm 3.4mm; }
+.v9-tighter .v9-trust{ margin-top:1.6mm; padding:1.6mm 0 1.2mm; }
+.v9-tighter .v9-trust-brand{ grid-template-rows:8.5mm auto; }
+.v9-tighter .v9-trust-brand img{ height:8.5mm; }
+.v9-tighter .v9-legal{ margin-top:1.6mm; font-size:7.9pt; line-height:1.32; }
+.v9-tighter .v9-h2{ padding-bottom:3mm; background-size:100% 1.5mm; }
+
+/* Ostatni stopien - wylacznie dla ofert z kompletem dodatkow, dwoma
+   pacjentami i pelnymi odliczeniami. Odliczenia ida wtedy w dwie kolumny,
+   bo to jedyne miejsce, gdzie da sie odzyskac dwa wiersze bez zmniejszania
+   typografii ponizej czytelnosci. */
+.v9-tightest .v9-heading h1{ font-size:22pt; }
+.v9-tightest .v9-recipient strong{ font-size:12.5pt; }
+.v9-tightest .v9-claim{ font-size:11.5pt; margin-top:2mm; }
+.v9-tightest .v9-subtitle{ font-size:9.2pt; margin-top:.8mm; margin-bottom:2mm; }
+.v9-tightest .v9-main{ padding-top:3.4mm; }
+.v9-tightest .v9-h2{ font-size:10.6pt; padding-bottom:2.7mm; background-size:100% 1.4mm; }
+.v9-tightest .v9-prices{ margin-top:1.4mm; }
+.v9-tightest .v9-prices table{ font-size:9.2pt; }
+.v9-tightest .v9-prices th{ padding-bottom:1.1mm; }
+.v9-tightest .v9-prices td{ padding-top:.75mm; padding-bottom:.75mm; }
+.v9-tightest .v9-selected td{ font-size:10pt; padding-top:1.3mm; padding-bottom:1.3mm; }
+.v9-tightest .v9-summary td{ padding-top:.6mm; padding-bottom:.6mm; }
+.v9-tightest .v9-deductions{ margin-top:1.4mm; }
+.v9-tightest .v9-ded-box{ display:grid; grid-template-columns:1fr 1fr; column-gap:5mm; padding:1.2mm 3mm; }
+.v9-tightest .v9-ded-row{ padding:.35mm 0; font-size:9.2pt; }
+.v9-tightest .v9-ded-row + .v9-ded-row{ border-top:0; }
+.v9-tightest .v9-ded-row:nth-child(n+3){ border-top:.5px solid var(--v9-sel-line); }
+.v9-tightest .v9-total{ margin-top:1.4mm; padding:2mm 3.4mm; }
+.v9-tightest .v9-share-note{ margin-top:1.2mm; font-size:8pt; }
+.v9-tightest .v9-trust{ margin-top:1.2mm; padding:1.2mm 0 1mm; }
+.v9-tightest .v9-trust-brand{ grid-template-rows:7.5mm auto; }
+.v9-tightest .v9-trust-brand img{ height:7.5mm; }
+.v9-tightest .v9-legal{ margin-top:1.2mm; font-size:7.2pt; line-height:1.28; }
 
 /* ---- tryb serwerowy: kartka A4 bez marginesow przegladarki ----
    Na ekranie #fr-pdf-doc stoi poza widokiem; w rendererze jest jedyna

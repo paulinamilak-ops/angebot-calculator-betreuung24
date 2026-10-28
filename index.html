@@ -6121,6 +6121,38 @@ function frPdfOpisy(selKarta, selTytul, selTresc){
   return out;
 }
 
+/* Strona 1 musi zmiescic sie na kartce A4 takze w wariancie maksymalnym:
+   piec dodatkow, dwoch pacjentow i pelne odliczenia. Zamiast skalowac cala
+   strone (stary mechanizm robil tak po cichu, przez co strona 1 wychodzila
+   mniejsza czcionka niz strony 2-4), mierzymy gotowy uklad i dokladamy
+   jedna z dwoch klas zageszczajacych. Krotka oferta zostaje w proporcjach
+   wzorca v9, bo pierwszy pomiar konczy petle. */
+function frFitPage1(doc){
+  if(!doc) return;
+  var page = doc.querySelector('.fr-pdf-page--offer');
+  if(!page) return;
+  var main = page.querySelector('.v9-main');
+  var foot = page.querySelector('.v9-foot');
+  if(!main || !foot) return;
+
+  /* Na ekranie kartka moze urosnac (min-height), w rendererze jest przyciecie
+     do 1123 px. Mierzymy w warunkach renderera, zeby wynik byl ten sam. */
+  var prevH = page.style.height, prevO = page.style.overflow;
+  page.style.height = '1123px';
+  page.style.overflow = 'hidden';
+
+  var base = 'fr-pdf-page fr-pdf-page--offer';
+  var kroki = ['', 'v9-tight', 'v9-tighter', 'v9-tightest'];
+  for(var i = 0; i < kroki.length; i++){
+    page.className = base + (kroki[i] ? ' ' + kroki[i] : '');
+    /* 4 px zapasu: render serwerowy lamie dluzsze akapity o wlos inaczej. */
+    if(main.getBoundingClientRect().bottom <= foot.getBoundingClientRect().top - 4) break;
+  }
+
+  page.style.height = prevH;
+  page.style.overflow = prevO;
+}
+
 function frBuildPdfDoc(){
   var doc = document.getElementById('fr-pdf-doc');
   if(!doc) return null;
@@ -6130,138 +6162,216 @@ function frBuildPdfDoc(){
   var dat  = frVal('fr-datum');
   var kto  = (vor + ' ' + nach).trim();
 
-  /* dodatki: etykieta z pola wyboru, kwoty z juz policzonych kolumn */
-  var dodatki = '';
+  /* --- dodatki: etykieta z pola wyboru, kwoty z juz policzonych kolumn --- */
+  var dodatkiRows = '';
   FR_ADDON_ORDER.forEach(function(k){
     if(!frChecked('fr-addon-' + k)) return;
     var row = document.getElementById('fr-row-addon-' + k);
     var lab = row ? row.querySelector('.checkbox-label') : null;
     var nazwa = lab ? lab.textContent.replace(/\s+/g,' ').trim() : k;
     var jednorazowy = FR_ADDONS[k] && FR_ADDONS[k].per === 'once';
-    var kwota = jednorazowy
-      ? frEuro(FR_ADDONS[k].amount) + ' einmalig'
-      : frPdfText('#fr-addon-' + k + '-month') + ' / Monat';
-    var podpis = jednorazowy ? '' : '<div class="sub">' + frPdfEsc(frPdfText('#fr-addon-' + k + '-day')) + ' / Tag</div>';
-    var kolTag = jednorazowy ? 'einmalig' : frPdfText('#fr-addon-' + k + '-day');
-    var kolMon = jednorazowy ? frEuro(FR_ADDONS[k].amount) : frPdfText('#fr-addon-' + k + '-month');
-    dodatki += '<div class="fr-pdf-line"><div class="n">' + frPdfEsc(nazwa) + '</div>'
-             + '<div class="t">' + frPdfEsc(kolTag) + '</div>'
-             + '<div class="m">' + frPdfEsc(kolMon) + '</div></div>';
+    /* Oplata jednorazowa nie ma stawki dziennej - kolumna zostaje pusta,
+       a slowo "einmalig" stoi przy kwocie, tak jak we wzorcu v9. */
+    var kolTag = jednorazowy ? '' : frPdfEsc(frPdfText('#fr-addon-' + k + '-day'));
+    var kolMon = jednorazowy
+      ? frPdfEsc(frEuro(FR_ADDONS[k].amount)) + ' <small>einmalig</small>'
+      : frPdfEsc(frPdfText('#fr-addon-' + k + '-month'));
+    dodatkiRows += '<tr><td>' + frPdfEsc(nazwa) + '</td>'
+                 + '<td>' + kolTag + '</td>'
+                 + '<td>' + kolMon + '</td></tr>';
   });
 
-  /* odliczenia, jesli franczyzobiorca wlaczyl ich pokazywanie */
-  var odliczenia = '';
+  /* --- odliczenia, jesli franczyzobiorca wlaczyl ich pokazywanie --- */
+  var odlicz = [];
   if(frChecked('fr-abzuege-toggle')){
-    var pozycje = [];
     var g1 = Number(frVal('fr-pflegegrad1')) || 0;
-    if(FR_PFLEGEGELD[g1]) pozycje.push(['Pflegegeld — Pflegegrad ' + g1, FR_PFLEGEGELD[g1]]);
+    if(FR_PFLEGEGELD[g1]){
+      odlicz.push(['Pflegegeld', 'Pflegegrad Patient 1: <b>' + g1 + '</b>', FR_PFLEGEGELD[g1]]);
+    }
     if(frPersons() === 2){
       var g2 = Number(frVal('fr-pflegegrad2')) || 0;
-      if(FR_PFLEGEGELD[g2]) pozycje.push(['Pflegegeld — 2. Person, Pflegegrad ' + g2, FR_PFLEGEGELD[g2]]);
+      if(FR_PFLEGEGELD[g2]){
+        odlicz.push(['Pflegegeld', 'Pflegegrad Patient 2: <b>' + g2 + '</b>', FR_PFLEGEGELD[g2]]);
+      }
     }
-    if(frChecked('fr-verhinderung')) pozycje.push(['Verhinderungspflege', FR_VERHIND]);
-    if(frChecked('fr-steuer'))       pozycje.push(['Steuerersparnis', FR_STEUER]);
-    if(pozycje.length){
-      pozycje.forEach(function(r){
-        odliczenia += '<div class="fr-pdf-line minus"><div class="n">' + frPdfEsc(r[0]) + '</div>'
-                    + '<div class="t"></div>'
-                    + '<div class="m">− ' + frPdfEsc(frEuro(r[1])) + '</div></div>';
-      });
-    }
+    if(frChecked('fr-verhinderung')) odlicz.push(['Verhinderungspflege', '', FR_VERHIND]);
+    if(frChecked('fr-steuer'))       odlicz.push(['Steuerersparnis', '', FR_STEUER]);
   }
+  var maAbzuege = odlicz.length > 0;
 
   var einmalig = frPdfText('#fr-summary-express');
   var ile = 4;
 
-  /* Uklad oferty przejety z dokumentu produkcyjnego Betreuung 24:
-     wysrodkowany tytul, sekcje z pomaranczowym podkresleniem, kolumny
-     Pro Tag / Pro Monat i granatowy pasek kwoty koncowej. Bez ramek. */
-  function naglowekKolumn(){
-    return '<div class="fr-pdf-cols"><div></div>'
-      + '<div class="fr-pdf-pill tag">Pro Tag</div>'
-      + '<div class="fr-pdf-pill monat">Pro Monat</div></div>';
-  }
-  function wiersz(nazwa, tag, monat, klasa){
-    return '<div class="fr-pdf-line' + (klasa ? ' ' + klasa : '') + '">'
-      + '<div class="n">' + nazwa + '</div>'
-      + '<div class="t">' + frPdfEsc(tag || '') + '</div>'
-      + '<div class="m">' + frPdfEsc(monat || '') + '</div></div>';
-  }
+  /* ---------- strona 1: uklad v9 ----------
+     Odwzorowanie reference/silber.html z paczki wdrozeniowej. Trzy tabele
+     o tej samej siatce kolumn (opis / Pro Tag / Pro Monat), wybrany produkt
+     podswietlony kolorem z alfa, granatowy pasek kwoty koncowej.
+     Do srodka trafiaja wylacznie kwoty koncowe - cena zakupu i prowizja nie
+     maja tu zadnej reprezentacji, wiec nie moga wyciec do pliku klienta. */
 
-  var maAbzuege = odliczenia !== '';
+  /* Naglowek sekcji z firmowym podkresleniem - tym samym rysunkiem, ktory
+     jest pod logo i pod tytulami sekcji w zakladkach aplikacji. */
+  function v9Head2(tekst, produkt){
+    /* Podkreslenie jest tlem naglowka, nie osobnym obrazkiem. Obrazek
+       w przeplywie wnosilby do szerokosci swoje 757 px i rozpychal komorke
+       na cala kolumne; tlo skaluje sie dokladnie do dlugosci napisu. */
+    return '<h2 class="v9-h2">' + frPdfEsc(tekst) + '</h2>'
+      + (produkt ? '<span class="v9-summary-product">' + frPdfEsc(produkt) + '</span>' : '');
+  }
+  /* Odliczenia maja wszedzie ten sam znak minus (U+2212), takze w wierszu
+     "Abzuge gesamt", ktory w panelu jest skladany dywizem. */
+  function v9Minus(t){
+    return frPdfEsc(String(t || '').replace(/^\s*[-\u2013]\s*/, '\u2212 '));
+  }
+  function v9Cols(){
+    return '<colgroup><col class="desc"><col><col></colgroup>';
+  }
+  function v9Thead(naglowek){
+    return '<thead><tr><th>' + naglowek + '</th>'
+      + '<th>Pro Tag</th><th>Pro Monat</th></tr></thead>';
+  }
+  function v9Row(nazwa, tag, monat, klasa, tagHtml){
+    return '<tr' + (klasa ? ' class="' + klasa + '"' : '') + '>'
+      + '<td>' + nazwa + '</td>'
+      + '<td>' + (tagHtml != null ? tagHtml : frPdfEsc(tag || '')) + '</td>'
+      + '<td>' + (monat || '') + '</td></tr>';
+  }
 
   var s1 = '<div class="fr-pdf-page fr-pdf-page--offer">'
-    + frPdfHead()
-    + '<div class="fr-pdf-body">'
 
-    /* --- tytul --- */
-    + '<div class="fr-pdf-center">'
-    +   '<div class="fr-pdf-kicker">24-Stunden-Seniorenbetreuung im eigenen Zuhause</div>'
-    +   '<div class="fr-pdf-angebot">Angebot</div>'
-    +   (kto || dat
-          ? '<div class="fr-pdf-kunde">' + (kto ? 'für ' + frPdfEsc(kto) : '')
-            + (kto && dat ? ' · ' : '') + (dat ? frPdfEsc(frDateDE(dat)) : '') + '</div>'
-          : '')
+    /* --- naglowek strony --- */
+    + '<div class="v9-head">'
+    +   '<img class="v9-logo" src="offer-logo-b24.png" alt="Betreuung 24">'
+    +   '<div class="v9-head-contact">'
+    +     '<a href="mailto:info@betreuung24.de">info@betreuung24.de</a>'
+    +     '<a href="https://www.betreuung24.de">www.betreuung24.de</a>'
+    +   '</div>'
     + '</div>'
+
+    + '<div class="v9-main">'
+
+    /* --- tytul i adresat --- */
+    +   '<div class="v9-heading">'
+    +     '<h1>Ihr persönliches<br>Angebot</h1>'
+    +     (kto || dat
+            ? '<div class="v9-recipient">'
+              + '<span>Persönlich erstellt für</span>'
+              + (kto ? '<strong>' + frPdfEsc(kto) + '</strong>' : '')
+              + (dat ? '<small>' + frPdfEsc(frDateDE(dat)) + '</small>' : '')
+              + '</div>'
+            : '')
+    +   '</div>'
+    +   '<p class="v9-claim">Zuhause gut betreut.</p>'
+    +   '<p class="v9-subtitle">24-Stunden-Seniorenbetreuung im eigenen Zuhause</p>'
 
     /* --- wybrana usluga --- */
-    + '<div class="fr-pdf-sec">'
-    +   '<div class="h">Ausgewählte Dienstleistung</div>'
-    +   naglowekKolumn()
-    +   wiersz(frPdfEsc(frPdfText('#fr-summary-produkt-label')),
-              frPdfText('#fr-produkt-preis-tag'),
-              frPdfText('#fr-produkt-preis'), 'strong')
-    + '</div>'
+    +   '<section class="v9-prices v9-selected"><table>' + v9Cols()
+    +     v9Thead(v9Head2('Ausgewählte Dienstleistung'))
+    +     '<tbody>'
+    +     v9Row(frPdfEsc(frPdfText('#fr-summary-produkt-label')),
+                frPdfText('#fr-produkt-preis-tag'),
+                frPdfEsc(frPdfText('#fr-produkt-preis')))
+    +     '</tbody></table></section>'
 
     /* --- dodatki --- */
-    + (dodatki
-        ? '<div class="fr-pdf-sec"><div class="h">Zusatzleistungen</div>'
-          + naglowekKolumn() + dodatki + '</div>'
-        : '')
+    +   (dodatkiRows
+          ? '<section class="v9-prices"><table>' + v9Cols()
+            + v9Thead(v9Head2('Zusatzleistungen'))
+            + '<tbody>' + dodatkiRows + '</tbody></table></section>'
+          : '')
 
     /* --- odliczenia --- */
-    + (maAbzuege
-        ? '<div class="fr-pdf-sec"><div class="h">Abzüge</div>'
-          + naglowekKolumn() + odliczenia + '</div>'
-        : '')
+    +   (maAbzuege
+          ? '<section class="v9-deductions">'
+            + v9Head2('Abzüge')
+            + '<div class="v9-ded-box">'
+            + odlicz.map(function(r){
+                return '<div class="v9-ded-row"><b>' + frPdfEsc(r[0]) + '</b>'
+                  + (r[1] ? '<span>' + r[1] + '</span>' : '')
+                  + '<strong>− ' + frPdfEsc(frEuro(r[2])) + '</strong></div>';
+              }).join('')
+            + '</div></section>'
+          : '')
 
     /* --- podsumowanie --- */
-    + '<div class="fr-pdf-sec">'
-    +   '<div class="h">Zusammenfassung</div>'
-    +   naglowekKolumn()
-    +   wiersz('Basistarif',
-              frPdfText('#fr-sum-base-day'), frPdfText('#fr-sum-base-month'))
-    +   wiersz('Basistarif mit Zusatzoptionen',
-              frPdfText('#fr-sum-base-addons-day'), frPdfText('#fr-sum-base-addons-month'))
-    +   wiersz('Summe vor Abzügen',
-              frPdfText('#fr-gesamt-vor-tag'), frPdfText('#fr-gesamt-vor'), 'strong')
-    +   (maAbzuege
-          ? wiersz('Abzüge gesamt', '', frPdfText('#fr-gesamt-abzuege'), 'minus')
-          : '')
-    + '</div>'
+    +   '<section class="v9-prices v9-summary"><table>' + v9Cols()
+    +     v9Thead(v9Head2('Zusammenfassung', frPdfText('#fr-summary-produkt-label')))
+    +     '<tbody>'
+    +     v9Row('Basistarif',
+                frPdfText('#fr-sum-base-day'),
+                frPdfEsc(frPdfText('#fr-sum-base-month')))
+    +     v9Row('Basistarif mit Zusatzoptionen',
+                frPdfText('#fr-sum-base-addons-day'),
+                frPdfEsc(frPdfText('#fr-sum-base-addons-month')))
+    +     (einmalig
+            ? v9Row('Einmalige Zuschläge: Express Service', '',
+                    frPdfEsc(einmalig) + ' <small>einmalig</small>')
+            : '')
+    +     v9Row('Summe vor Abzügen',
+                frPdfText('#fr-gesamt-vor-tag'),
+                frPdfEsc(frPdfText('#fr-gesamt-vor')), 'v9-subtotal')
+    +     (maAbzuege
+            ? v9Row('Abzüge gesamt',
+                    '',
+                    v9Minus(frPdfText('#fr-summary-abzuege-monat')),
+                    'v9-minus', v9Minus(frPdfText('#fr-summary-abzuege-tag')))
+            : '')
+    +     '</tbody></table></section>'
 
     /* --- kwota koncowa --- */
-    + '<div class="fr-pdf-bar">'
-    +   '<div><div class="k">' + frPdfEsc(frPdfText('#fr-main-summary-title')) + '</div>'
-    +     (einmalig ? '<div class="once">zzgl. ' + frPdfEsc(einmalig) + ' einmalig</div>' : '')
-    +   '</div>'
-    +   '<div class="t">' + frPdfEsc(frPdfText('#fr-summe-final-tag')) + '</div>'
-    +   '<div class="m">' + frPdfEsc(frPdfText('#fr-summe-final')) + '</div>'
-    + '</div>'
+    +   '<section class="v9-total">'
+    +     '<div><span>' + frPdfEsc(frPdfText('#fr-main-summary-title')) + '</span>'
+    +       (einmalig ? '<small>zzgl. ' + frPdfEsc(einmalig) + ' einmalig</small>' : '')
+    +     '</div>'
+    +     '<div class="v9-total-daily"><small>Pro Tag</small><strong>'
+    +       frPdfEsc(frPdfText('#fr-summe-final-tag')) + '</strong></div>'
+    +     '<div class="v9-total-monthly"><small>Pro Monat</small><strong>'
+    +       frPdfEsc(frPdfText('#fr-summe-final')) + '</strong></div>'
+    +   '</section>'
+
+    +   (maAbzuege
+          ? '<p class="v9-share-note">Der persönliche Anteil ist der monatliche Betrag '
+            + 'nach Abzug aller aufgeführten Leistungen und Zuschüsse.</p>'
+          : '')
+
+    /* --- opinie: same logotypy i odeslanie do zrodla --- */
+    +   '<aside class="v9-trust">'
+    +     '<div class="v9-trust-intro"><strong>Erfahrungen mit Betreuung24</strong>'
+    +       '<span>Lesen Sie, was Kunden berichten.</span></div>'
+    +     '<a class="v9-trust-brand" href="https://www.provenexpert.com/de-de/betreuung24/">'
+    +       '<img src="offer-provenexpert.svg" alt="ProvenExpert">'
+    +       '<span>Bewertungen ansehen</span></a>'
+    +     '<a class="v9-trust-brand" href="https://de.trustpilot.com/review/betreuung24.de">'
+    +       '<img src="offer-trustpilot.svg" alt="Trustpilot">'
+    +       '<span>Bewertungen ansehen</span></a>'
+    +   '</aside>'
 
     /* --- zastrzezenia --- */
-    + '<div class="fr-pdf-note"><b>Hinweis:</b> 12 Tage im Jahr werden doppelt berechnet: Neujahr, '
-    + 'Karfreitag, Ostersonntag, Ostermontag, Erster Mai, Pfingstsonntag, Pfingstmontag, '
-    + 'Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.), sowie der Erste '
-    + 'und Zweite Weihnachtstag.<br>'
-    + 'Eine Beispielberechnung für 30 Tage Dienstleistungserbringung.<br>'
-    + 'Dies ist ein unverbindliches Angebot. Steuerliche Abzugsfähigkeit, insbesondere im Rahmen '
-    + 'der haushaltsnahen Dienstleistungen, ist grundsätzlich möglich, muss jedoch vom Kunden '
-    + 'selbst beantragt und mit dem zuständigen Finanzamt geklärt werden. Eine Garantie für die '
-    + 'steuerliche Anerkennung kann nicht übernommen werden.</div>'
+    +   '<section class="v9-legal">'
+    +     '<p>Hinweis: 12 Tage im Jahr werden doppelt berechnet: Neujahr, Karfreitag, '
+    +     'Ostersonntag, Ostermontag, Erster Mai, Pfingstsonntag, Pfingstmontag, '
+    +     'Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.), '
+    +     'sowie der Erste und Zweite Weihnachtstag.</p>'
+    +     '<p>Eine Beispielberechnung für 30 Tage Dienstleistungserbringung.</p>'
+    +     '<p>Dies ist ein unverbindliches Angebot. Steuerliche Abzugsfähigkeit, '
+    +     'insbesondere im Rahmen der haushaltsnahen Dienstleistungen, ist grundsätzlich '
+    +     'möglich, muss jedoch vom Kunden selbst beantragt und mit dem zuständigen '
+    +     'Finanzamt geklärt werden. Eine Garantie für die steuerliche Anerkennung kann '
+    +     'nicht übernommen werden.</p>'
+    +   '</section>'
 
     + '</div>'
-    + frPdfFoot(1, ile)
+
+    /* --- stopka: wylacznie dane centrali --- */
+    + '<div class="v9-foot">'
+    +   '<div><span>Betreuung 24 Sp. z o.o. &nbsp;|&nbsp; Al. Jerozolimskie 93, '
+    +     '02-001 Warschau, Polen</span>'
+    +     '<span class="v9-folio-title">'
+    +       (kto ? frPdfEsc(kto) + ' · ' : '') + (dat ? frPdfEsc(frDateDE(dat)) + ' · ' : '')
+    +       'Kostenübersicht</span></div>'
+    +   '<span class="v9-folio">1 <i>/ ' + ile + '</i></span>'
+    + '</div>'
+
     + '</div>';
 
   function strona(nr, tytul, tresc){
@@ -6282,6 +6392,7 @@ function frBuildPdfDoc(){
                '.product-title', '.product-text'));
 
   doc.innerHTML = s1 + s2 + s3 + s4;
+  frFitPage1(doc);
   return doc;
 }
 
