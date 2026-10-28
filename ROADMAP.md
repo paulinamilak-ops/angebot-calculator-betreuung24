@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **28.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`724297c`**
+Ostatni commit **`__COMMIT__`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -10,12 +10,38 @@ Ostatni commit **`724297c`**
 | 3 | Backend modułu franczyzowego | ✅ |
 | 4 | Interfejs — zakładka Franchise | ✅ |
 | 5 | Domknięcie | ✅ 5/7 — 2 odłożone decyzją PO |
-| 6 | Cennik 01.10.2026 i wygląd PDF | 🔄 blokuje brak cennika franczyzowego |
+| 6 | Cennik | ✅ cennik z 28.10.2026 wdrożony w obu modułach |
 | 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.3 zrobione, 7.4 następne |
 
 ---
 
 ## Sesja 28.10.2026
+
+### Cennik z 28.10.2026 — jeden dla obu modułów
+
+**Decyzja PO:** te same kwoty w zakładce Angebot i w module franczyzowym.
+Szczegóły i kontrola po wdrożeniu: `CENNIK-2026-10-28.md`.
+
+| Pakiet | Angebot było | Franczyza było | **Jest, oba moduły** |
+| --- | --- | --- | --- |
+| Bronze | 2 700 € / 90 € | 2 300 € / 77 € | **2 600 € / 87 €** |
+| Silber | 3 100 € / 103 € | 2 800 € / 93 € | **2 900 € / 97 €** |
+| Gold | 3 600 € / 120 € | 3 200 € / 107 € | **3 300 € / 110 €** |
+| Platin | 3 900 € / 130 € | 3 600 € / 120 € | **3 600 € / 120 €** |
+
+⚠️ **Marża centrali na odsprzedaży franczyzie wynosi teraz 0 € w każdym
+pakiecie.** Przed zmianą było 400 / 300 / 400 / 300 € miesięcznie.
+Franczyzobiorca zarabia wyłącznie na swojej prowizji. Konsekwencja została
+przedstawiona PO przed decyzją — w szczególności to, że Platin w nowym
+cenniku to dokładnie dotychczasowa cena zakupu Platinu.
+
+Zmienione trzy miejsca: `products` w `index.html` (Angebot),
+`FRANCHISE_PRODUCTS` w `server.js` (źródło prawdy dla Franchise)
+i `FR_PRODUCTS` w `index.html` (kopia zapasowa na froncie).
+
+Sprawdzone w przeglądarce: przy prowizji 0 € moduł franczyzowy odtwarza
+87 / 97 / 110 / 120 € co do grosza. PDF oferty przeliczony ponownie we
+wszystkich trzech wariantach — strona 1 nadal mieści się na A4.
 
 ### Commit `724297c` — strona 1 oferty w układzie v9 (krok 7.3)
 
@@ -169,8 +195,8 @@ z 21.10.2026) leży w folderze „CV oferty", **poza repozytorium**.
 | Strony | 4 × A4, 210 × 297 mm, pionowo |
 | Obszar strony | `padding: 15mm 17mm 0` |
 | Font | Alan Sans (we wzorcu rodzina `Alan`) |
-| Granat | `#142347` (u nas `--navy #0d1b3e` — **do uzgodnienia**) |
-| Pomarańcz | `#f5a400` (u nas `--orange #f7a800` — **do uzgodnienia**) |
+| Granat | `--navy #0d1b3e` — ✅ decyzja PO 28.10: kolory aplikacji |
+| Pomarańcz | `--orange #f7a800` — ✅ decyzja PO 28.10: kolory aplikacji |
 | Tło wybranego pakietu | kolor z alfą `.08`, obrys `.28` |
 | Zaokrąglenie wyboru | 1,5 mm |
 | Kwoty w granatowym podsumowaniu | 11,5 pt, weight 550, line-height 1.2 |
@@ -189,10 +215,12 @@ się w górę do 500 i etykiety wyszłyby za ciężkie.
 
 | Wzorzec | Baza | Z czego wynika |
 | --- | --- | --- |
-| `silber.html` | 96,32 € / 2.900,00 € | **cennik franczyzowy**: Silber 2.800 € + prowizja 100 € |
-| `bronze-abzuege.html` | 90 € / 2.700 € | **cennik Angebot od 01.10.2026** |
+| `silber.html` | 96,32 € / 2.900,00 € | cennik franczyzowy 18.05.2026 + prowizja 100 € |
+| `bronze-abzuege.html` | 90 € / 2.700 € | cennik Angebot 01.10.2026 |
 
-Silber jest wzorcem dla Franchise, Bronze dla Angebot.
+Silber jest wzorcem dla Franchise, Bronze dla Angebot. **Uwaga:** po zmianie
+cennika z 28.10 żaden z nich nie odtworzy się kwotowo jeden do jednego —
+w kroku 7.6 porównujemy **układ**, nie liczby.
 
 ### Silnik przeglądarki a zgodność 1:1
 
@@ -217,6 +245,9 @@ do PO do zatwierdzenia w kroku 7.6.
 | Mechanizm PDF | ✅ 27.10 — **droga B**, render po stronie serwera |
 | Zakres wyglądu v9 | ✅ 27.10 — **oba moduły** |
 | Podkreślenie pod nagłówkami sekcji | ✅ 28.10 — **tak**, rysunek spod logo |
+| Podkreślenie pod „Abzüge" | ✅ 28.10 — **zostaje** |
+| Kolory oferty | ✅ 28.10 — **kolory aplikacji** `#0d1b3e` / `#f7a800` |
+| Cennik od 28.10.2026 | ✅ 28.10 — **jeden dla obu modułów**, marża centrali 0 € |
 | Rabat kwotowy | Brak — tylko prowizja |
 | Widełki prowizji | Brak limitów |
 | Dwóch pacjentów | Tak, wyłącznie przez dodatek 15 €/dzień |
@@ -235,17 +266,9 @@ do PO do zatwierdzenia w kroku 7.6.
 
 ## Wymaga decyzji
 
-1. **Nowy cennik franczyzowy** — kwoty nadal nieprzekazane.
-   Potrzebne cztery ceny miesięczne i cztery stawki dzienne.
-   Miejsce zmiany: `server.js`, linie **~825–828**, blok
-   `FRANCHISE_PRODUCTS`. **Blokuje etap 6.**
-2. **Kolory firmowe** — wzorzec v9 ma granat `#142347` i pomarańcz
-   `#f5a400`, aplikacja `#0d1b3e` i `#f7a800`. Oferta idzie na kolorach
-   aplikacji; zmiana to podmiana dwóch wartości w `:root` w `offer-print.css`.
-3. **Podkreślenie pod „Abzüge"** — dodane dla spójności, choć PO wskazał
-   trzy nagłówki. Zostawiamy czy zdejmujemy.
-4. **Wdrożenie produkcyjne** — kiedy i czy. Produkcja stoi na `main`,
-   na SQLite, nietknięta, ze starym cennikiem.
+1. **Wdrożenie produkcyjne** — kiedy i czy. Produkcja stoi na `main`,
+   na SQLite, nietknięta, ze **starym cennikiem** (2 700 / 3 100 / 3 600 /
+   3 900 €). Konsultanci wystawiają dziś oferty po starych cenach.
 
 ## Do zrobienia niezależnie od etapów
 
@@ -324,6 +347,8 @@ Trzy moduły: Angebot, Kreator CV, franczyzowy generator ofert.
 - Folder na komputerze PO: **„CV oferty"**, repozytorium w `betreuung24`.
 - **Sprawdzanie PDF-ów:** PyMuPDF jest tylko w kontenerze Claude
   (`pip install pymupdf --break-system-packages`).
+- **Kontrola cennika:** `cennik.cjs` — otwiera `index.html` w Playwrighcie,
+  przechodzi cztery pakiety przy prowizji 0 € i 600 €, porównuje z cennikiem.
 - **Test renderu bez bazy i bez logowania:** `harness.cjs` — mały serwer
   statyczny na plikach repozytorium, Playwright otwiera `index.html`,
   ustawia pola `fr-*`, woła `frRecalc()` i `frBuildPdfDoc()`, oddaje
