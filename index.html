@@ -1008,6 +1008,24 @@ textarea.pp-ref-quote:hover {
   .select, .input{ min-width:120px !important; font-size:11px !important; padding:6px 8px !important; }
   .checkbox-row{ margin:2px 0 !important; }
   .checkbox{ width:14px !important; height:14px !important; }
+
+  /* Oferta, ktora dostaje klient, nie moze wygladac jak wypelniony
+     formularz. Na wydruku zakladki Angebot rozwijane listy (produkt,
+     Pflegegrad) drukuja sie jako sam tekst - bez ramki, tla i strzalki -
+     a pola wyboru znikaja. Nie traci przez to informacji: niezaznaczone
+     dodatki i tak sa chowane przed drukiem przez
+     compactUncheckedAddonsForPrint(), wiec kazdy wydrukowany wiersz
+     to pozycja wliczona w oferte. */
+  #tab-angebot.print-active .select{
+    -webkit-appearance:none !important; appearance:none !important;
+    border:0 !important; background:none !important; box-shadow:none !important;
+    outline:none !important; padding:0 !important; margin:0 !important;
+    min-width:0 !important; width:auto !important;
+    color:inherit !important; font-family:inherit !important;
+    font-weight:700 !important; text-overflow:clip !important;
+  }
+  #tab-angebot.print-active .checkbox{ display:none !important; }
+
   .abzug-row{ margin:2px 0 !important; align-items:center !important; }
   .summary-box{ margin-top:8px !important; padding:8px 10px !important; }
   .sum-head{ padding-bottom:4px !important; margin-bottom:4px !important; gap:8px !important; }
