@@ -5508,7 +5508,11 @@ document.getElementById('wizard-overlay').addEventListener('click', function(e){
           obowiązywać nowszy. Oferty już zapisane zachowują swoje kwoty.
         </div>
 
-        <div style="font-size:11px;font-weight:800;color:#0d1b3e;text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 6px;">Pakiety</div>
+        <div style="font-size:11px;font-weight:800;color:#0d1b3e;text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 2px;">Pakiety</div>
+        <div style="font-size:11px;color:#888;margin-bottom:6px;line-height:1.4;">
+          Wpisz kwotę miesięczną — dzienna wyliczy się sama (miesięczna ÷ 30,
+          zaokrąglona do pełnego euro). Jeśli w cenniku stoi inna, nadpisz ją ręcznie.
+        </div>
         <div id="admin-price-products" style="display:flex;flex-direction:column;gap:6px;"></div>
 
         <div style="font-size:11px;font-weight:800;color:#0d1b3e;text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 6px;">Dodatki</div>
@@ -5760,6 +5764,23 @@ async function adminPriceLoadMeta(){
         + adminPriceInput('admin-price-p-' + pr.key + '-monat', '€ / Monat'));
     }).join('');
 
+  /* Stawka dzienna liczy sie z miesiecznej: miesieczna / 30, zaokraglona do
+     pelnego euro. Ta sama regula odtwarza co do euro wszystkie dotychczasowe
+     cenniki - z 28.10.2026, z 01.10.2026 i franczyzowy z 18.05.2026.
+     Wiazaca pozostaje kwota miesieczna, wiec dzienna da sie nadpisac recznie;
+     raz wpisana z reki nie jest juz nadpisywana. */
+  _adminPriceMeta.products.forEach(function(pr){
+    var tag   = document.getElementById('admin-price-p-' + pr.key + '-tag');
+    var monat = document.getElementById('admin-price-p-' + pr.key + '-monat');
+    if(!tag || !monat) return;
+    tag.addEventListener('input', function(){ tag.dataset.manual = '1'; });
+    monat.addEventListener('input', function(){
+      if(tag.dataset.manual === '1') return;
+      var v = Number(String(monat.value).replace(',', '.'));
+      tag.value = (isFinite(v) && v > 0) ? Math.round(v / FR_DAYS) : '';
+    });
+  });
+
   document.getElementById('admin-price-addons').innerHTML =
     _adminPriceMeta.addons.map(function(ad){
       return adminPriceRow(ad.label,
@@ -5777,7 +5798,9 @@ function adminResetPriceForm(){
   document.getElementById('admin-price-name').value  = '';
   document.getElementById('admin-price-valid').value = '';
   (_adminPriceMeta ? _adminPriceMeta.products : []).forEach(function(pr){
-    document.getElementById('admin-price-p-' + pr.key + '-tag').value   = '';
+    var tag = document.getElementById('admin-price-p-' + pr.key + '-tag');
+    tag.value = '';
+    delete tag.dataset.manual;
     document.getElementById('admin-price-p-' + pr.key + '-monat').value = '';
   });
   (_adminPriceMeta ? _adminPriceMeta.addons : []).forEach(function(ad){
@@ -5794,9 +5817,17 @@ function adminFillPriceForm(l){
   document.getElementById('admin-price-name').value  = l.name;
   document.getElementById('admin-price-valid').value = l.valid_from;
   _adminPriceMeta.products.forEach(function(pr){
-    var v = l.products[pr.key] || {};
-    document.getElementById('admin-price-p-' + pr.key + '-tag').value   = v.tag   != null ? v.tag   : '';
+    var v   = l.products[pr.key] || {};
+    var tag = document.getElementById('admin-price-p-' + pr.key + '-tag');
+    tag.value = v.tag != null ? v.tag : '';
     document.getElementById('admin-price-p-' + pr.key + '-monat').value = v.monat != null ? v.monat : '';
+    /* Cennik, w ktorym dzienna odstaje od reguly, zostal ustawiony recznie -
+       zmiana miesiecznej nie moze mu jej po cichu wyprostowac. */
+    if(v.tag != null && v.monat != null && Math.round(Number(v.monat) / FR_DAYS) !== Number(v.tag)){
+      tag.dataset.manual = '1';
+    } else {
+      delete tag.dataset.manual;
+    }
   });
   _adminPriceMeta.addons.forEach(function(ad){
     var v = l.addons[ad.key] || {};

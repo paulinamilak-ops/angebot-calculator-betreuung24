@@ -55,6 +55,22 @@ odpowiedni dla modułu.
       przyszłych. Kasowanie z potwierdzeniem na samym przycisku — okno
       `confirm()` nie pokazuje się w panelu przeglądarki Claude.
 
+#### Stawka dzienna liczy się sama
+
+Wpisujesz kwotę miesięczną, dzienna wylicza się jako **miesięczna ÷ 30,
+zaokrąglona do pełnego euro**. Reguła odtwarza co do euro **wszystkie**
+dotychczasowe cenniki:
+
+| Cennik | Miesięczne | Wyliczone dzienne | W cenniku |
+| --- | --- | --- | --- |
+| 28.10.2026 | 2.600 / 2.900 / 3.300 / 3.600 | 87 / 97 / 110 / 120 | zgadza się |
+| Angebot 01.10.2026 | 2.700 / 3.100 / 3.600 / 3.900 | 90 / 103 / 120 / 130 | zgadza się |
+| Franczyza 18.05.2026 | 2.300 / 2.800 / 3.200 / 3.600 | 77 / 93 / 107 / 120 | zgadza się |
+
+Wiążąca zostaje kwota miesięczna, więc dzienną można nadpisać ręcznie —
+raz wpisana z ręki nie jest już poprawiana. Wczytanie cennika, w którym
+dzienna odstaje od reguły, od razu traktuje ją jako ustawioną ręcznie.
+
 #### Czego aplikacja pilnuje za administratora
 
 - Cennik, który **obowiązuje w tej chwili**, nie daje się skasować.
