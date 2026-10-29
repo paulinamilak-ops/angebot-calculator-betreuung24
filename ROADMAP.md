@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **29.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`307df42`** · wypchnięty na GitHub
+Ostatni commit **`816b42f`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ Ostatni commit **`307df42`** · wypchnięty na GitHub
 | 5 | Domknięcie | ✅ 5/7 — 2 odłożone decyzją PO |
 | 6 | Cennik | ✅ cennik z 28.10.2026 wdrożony w obu modułach |
 | 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.5 zrobione, 7.6 zostaje |
-| 8 | Cenniki w panelu administratora | 🔄 8.1 i 8.2 zrobione, 8.3 następne |
+| 8 | Cenniki w panelu administratora | ✅ 8.1–8.3 zrobione |
 
 ---
 
@@ -27,7 +27,7 @@ odpowiedni dla modułu.
 | --- | --- | --- |
 | 8.1 | Baza i API cenników | ✅ `307df42` |
 | 8.2 | Zakładka „Preislisten" w panelu admina | ✅ `307df42` |
-| 8.3 | Generatory biorą cennik z bazy | ⬜ **następne** |
+| 8.3 | Generatory biorą cennik z bazy | ✅ `816b42f` |
 
 ### Decyzje PO z 29.10.2026
 
@@ -54,6 +54,41 @@ odpowiedni dla modułu.
       lista cenników z oznaczeniem „obowiązuje" i „od DD.MM.RRRR" dla
       przyszłych. Kasowanie z potwierdzeniem na samym przycisku — okno
       `confirm()` nie pokazuje się w panelu przeglądarki Claude.
+
+### Commit `816b42f` — generatory biorą cennik z bazy (8.3)
+
+**Zgłoszenie PO:** „zmieniłam zwykły cennik, ale nie widzę odzwierciedlenia
+w zakładce Angebot".
+
+- [x] **Zakładka Angebot** pobiera zwykły cennik po zalogowaniu
+      (`/pricing/active?kind=standard`) i nadpisuje nim kwoty pakietów
+      i dodatków.
+- [x] **Moduł franczyzowy** liczy z cennika franczyzowego — i to **po
+      stronie serwera**, więc zapisana oferta nie może mieć kwot
+      sprzecznych z cennikiem. `/franchise/pricing` oddaje cennik z bazy
+      razem z informacją, z którego cennika pochodzi.
+- [x] **Etykiety dodatków idą za cennikiem.** Napis „+ 8 € pro Tag" przy
+      polu wyboru był wpisany w kodzie strony; po zmianie ceny pokazywałby
+      inną kwotę niż oferta. Teraz odświeża się razem z cennikiem.
+- [x] **Po zapisie cennika kalkulator odświeża się sam**, bez
+      przeładowania strony.
+- [x] **Kopia awaryjna.** Gdyby w bazie nie było cennika albo serwer nie
+      odpowiedział, kalkulator liczy po ostatnich znanych kwotach z kodu
+      zamiast pokazywać zera (`source: built-in` w odpowiedzi).
+
+#### Sprawdzone na prawdziwej bazie
+
+| Co | Wynik |
+| --- | --- |
+| Zmiana Gold na 3.450 € w panelu | zakładka Angebot od razu 3.450 € / 115 € |
+| Zmiana Bronze na 2.800 € i Führerschein na 12 € | 2.800 € / 93 €, etykieta „+ 12 € pro Tag", suma z dodatkiem 3.160 € |
+| Zmiana cennika franczyzowego na Silber 2.500 € | `/franchise/calc` zwraca 3.100 € i 102,92 € przy prowizji 600 € |
+| Zapis oferty franczyzowej po zmianie cennika | zapisana, kwoty policzone przez serwer |
+| Cennik przywrócony do kwot z 28.10 | Angebot znowu 2.600 € / 87 € |
+
+**Uwaga o odświeżaniu:** cennik wczytuje się przy logowaniu. Jeśli ktoś
+zmieni go na innym komputerze w trakcie Twojej pracy, zobaczysz nowe kwoty
+po przeładowaniu strony.
 
 #### Stawka dzienna liczy się sama
 
