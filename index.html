@@ -1291,8 +1291,10 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
       <div class="angebot-title">Angebot</div>
 
       <div class="actions-row">
-        <button class="button-primary" onclick="printAngebot()">PDF / Drucken</button>
+        <button class="button-primary" id="ang-pdf-btn" onclick="angSavePdf()">PDF speichern</button>
+        <button class="button-primary" onclick="printAngebot()">PDF / Drucken (alt)</button>
       </div>
+      <div class="fr-msg" id="ang-save-msg"></div>
 
       <div class="calc-settings">
         <div class="section-title">
@@ -1300,6 +1302,23 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
           <img src="underline-curve.png" alt="" class="section-underline">
         </div>
         <div class="card-group">
+          <div class="card">
+            <div class="card-header">Kunde</div>
+            <div class="card-row" style="gap:24px;">
+              <div class="form-inline">
+                <span class="label">Vorname</span>
+                <input type="text" id="vorname" class="input" autocomplete="off">
+              </div>
+              <div class="form-inline">
+                <span class="label">Nachname</span>
+                <input type="text" id="nachname" class="input" autocomplete="off">
+              </div>
+              <div class="form-inline">
+                <span class="label">Datum</span>
+                <input type="date" id="datum" class="input">
+              </div>
+            </div>
+          </div>
           <div class="card">
             <div class="card-header">Grunddaten</div>
             <div class="card-row" style="gap:24px;">
@@ -1546,7 +1565,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
         </div>
         <div class="main-summary">
           <div class="main-summary-row">
-            <p class="main-summary-title">Persönlicher Anteil nach allen Abzügen</p>
+            <p class="main-summary-title" id="main-summary-title">Gesamt</p>
             <div class="main-summary-right">
               <div class="main-summary-grid">
                 <span class="pill-dark">Pro Tag</span>
@@ -3439,6 +3458,10 @@ function recalc(){
   if(summaryAbzuegeRow){if(totalAbzuege>0){summaryAbzuegeRow.style.display="grid";setText("summary-abzuege-tag","- "+euro(Math.round(totalAbzuege/divisor)));setText("summary-abzuege-monat","- "+euro(Math.round(totalAbzuege)));}else{summaryAbzuegeRow.style.display="none";}}
   const badge=document.getElementById("discount-badge");
   if(badge){if(rabattBase>0){badge.style.display="inline-flex";setText("discount-badge-val","- "+euro(Math.round(rabattBase)));}else{badge.style.display="none";}}
+  /* Naglowek kwoty koncowej byl tu wpisany na stale i mowil o odliczeniach
+     nawet wtedy, gdy zadnych nie bylo. Teraz przelacza sie jak we Franchise. */
+  setText("main-summary-title", totalAbzuege>0
+    ? "Pers\u00f6nlicher Anteil nach allen Abz\u00fcgen" : "Gesamt");
   let finalMonth=totalBeforeAbzuege-totalAbzuege;
   if(finalMonth<0)finalMonth=0;
   setText("summe-final",euro(Math.round(finalMonth)));
@@ -3490,6 +3513,11 @@ document.getElementById("patient-count").addEventListener("change",function(){
   if(cb) cb.checked = (parseInt(this.value,10) === 2);
   recalc();
 });
+(function(){
+  /* Data oferty domyslnie dzisiejsza - tak samo jak w module franczyzowym. */
+  var d=document.getElementById("datum");
+  if(d&&!d.value)d.value=new Date().toISOString().slice(0,10);
+})();
 document.getElementById("rabatt-check").addEventListener("change",recalc);
 document.getElementById("rabatt-betrag").addEventListener("input",recalc);
 document.getElementById("abzug-verhinderung-check").addEventListener("change",recalc);
@@ -6202,7 +6230,8 @@ function v9Leistungen(){
 }
 
 /* --- strona 4: opisy dodatkow --- */
-function v9Zusatz(){
+function v9Zusatz(wybrane){
+  wybrane = wybrane || {};
   var karty = document.querySelectorAll('#tab-angebot .addons-desc-section .products-list .product-card');
   /* Opisy dodatkow i klucze cennika sa w tym samym pliku i w tej samej
      kolejnosci. Gdyby kiedys przestaly zgadzac sie dlugoscia, zadny dodatek
@@ -6213,7 +6242,7 @@ function v9Zusatz(){
     var t = card.querySelector('.product-title');
     var b = card.querySelector('.product-text');
     if(!t) return;
-    var sel = zgodne && frChecked('fr-addon-' + FR_ADDON_ORDER[i]);
+    var sel = zgodne && !!wybrane[FR_ADDON_ORDER[i]];
     if(sel) ileSel++;
     var akapity = [];
     if(b){
@@ -6291,92 +6320,152 @@ function frFitPage1(doc){
   page.style.overflow = prevO;
 }
 
-function frBuildPdfDoc(){
-  var doc = document.getElementById('fr-pdf-doc');
-  if(!doc) return null;
+/* ================== WSPOLNY SZABLON OFERTY ==================
+   Uklad strony 1 jest jeden dla obu zakladek. Szablon dostaje gotowe
+   kwoty i nie wie, z ktorej zakladki pochodza - dzieki temu Angebot
+   i Franchise nie moga sie rozjechac przy kolejnej zmianie wygladu.
 
-  var vor  = String(frVal('fr-vorname')).trim();
-  var nach = String(frVal('fr-nachname')).trim();
-  var dat  = frVal('fr-datum');
-  var kto  = (vor + ' ' + nach).trim();
-  var datTxt = dat ? frDateDE(dat) : '';
+   Do srodka trafiaja wylacznie kwoty koncowe. Cena zakupu i prowizja
+   franczyzobiorcy nie maja tu zadnej reprezentacji, wiec nie moga wyciec
+   do pliku klienta nawet przez pomylke w stylach. */
+
+/* Naglowek sekcji z firmowym podkresleniem - tym samym rysunkiem, ktory
+   jest pod logo i pod tytulami sekcji w zakladkach aplikacji. */
+function v9Head2(tekst, produkt){
+  /* Podkreslenie jest tlem naglowka, nie osobnym obrazkiem. Obrazek
+     w przeplywie wnosilby do szerokosci swoje 757 px i rozpychal komorke
+     na cala kolumne; tlo skaluje sie dokladnie do dlugosci napisu. */
+  return '<h2 class="v9-h2">' + frPdfEsc(tekst) + '</h2>'
+    + (produkt ? '<span class="v9-summary-product">' + frPdfEsc(produkt) + '</span>' : '');
+}
+/* Kwoty ujemne maja wszedzie ten sam znak minus (U+2212), takze tam, gdzie
+   panel sklada je dywizem. */
+function v9Minus(t){
+  return frPdfEsc(String(t || '').replace(/^\s*[-\u2013\u2212]\s*/, '')) ;
+}
+function v9Cols(){
+  return '<colgroup><col class="desc"><col><col></colgroup>';
+}
+function v9Thead(naglowek){
+  return '<thead><tr><th>' + naglowek + '</th>'
+    + '<th>Pro Tag</th><th>Pro Monat</th></tr></thead>';
+}
+function v9Row(nazwa, tag, monat, klasa, tagHtml){
+  return '<tr' + (klasa ? ' class="' + klasa + '"' : '') + '>'
+    + '<td>' + nazwa + '</td>'
+    + '<td>' + (tagHtml != null ? tagHtml : frPdfEsc(tag || '')) + '</td>'
+    + '<td>' + (monat || '') + '</td></tr>';
+}
+
+/* ---------- zbieracz danych ----------
+   Obie zakladki maja te same identyfikatory pol, Franchise z przedrostkiem
+   "fr-". Rozne sa tylko trzy rzeczy, wiec ida osobnym argumentem:
+   przelacznik odliczen, nazwy pol Verhinderungspflege i Steuerersparnis
+   oraz rabat, ktorego modul franczyzowy nie ma. */
+function v9Dane(p, o){
+  o = o || {};
+  var txt = function(id){ return frPdfText('#' + p + id); };
+  /* Kwoty czytamy bez zamiany spacji nielamiacej na zwykla: inaczej "300,00"
+     i znak euro moglyby trafic do dwoch wierszy. frPdfText t\u0105 spacj\u0119 zamienia,
+     bo przy etykietach i tytulach tak jest wygodniej. */
+  var kw = function(id){
+    var el = document.querySelector('#' + p + id);
+    return el ? el.textContent.trim() : '';
+  };
+  /* Panel zakladki Angebot dopisuje do kwoty jednorazowej slowo "(einmalig)".
+     Szablon stawia je sam, wiec tu je zdejmujemy - inaczej na gotowej ofercie
+     stoi dwa razy. */
+  var bezEinmalig = function(t){
+    return String(t || '').replace(/\s*\(einmalig\)\s*$/i, '').trim();
+  };
+
+  var vor  = String(frVal(p + 'vorname')).trim();
+  var nach = String(frVal(p + 'nachname')).trim();
+  var dat  = frVal(p + 'datum');
 
   /* --- dodatki: etykieta z pola wyboru, kwoty z juz policzonych kolumn --- */
-  var dodatkiRows = '';
+  var dodatki = [], wybrane = {};
   FR_ADDON_ORDER.forEach(function(k){
-    if(!frChecked('fr-addon-' + k)) return;
-    var row = document.getElementById('fr-row-addon-' + k);
+    if(!frChecked(p + 'addon-' + k)) return;
+    wybrane[k] = true;
+    var row = document.getElementById(p + 'row-addon-' + k);
     var lab = row ? row.querySelector('.checkbox-label') : null;
-    var nazwa = lab ? lab.textContent.replace(/\s+/g,' ').trim() : k;
-    var jednorazowy = FR_ADDONS[k] && FR_ADDONS[k].per === 'once';
-    /* Oplata jednorazowa nie ma stawki dziennej - kolumna zostaje pusta,
-       a slowo "einmalig" stoi przy kwocie, tak jak we wzorcu v9. */
-    var kolTag = jednorazowy ? '' : frPdfEsc(frPdfText('#fr-addon-' + k + '-day'));
-    var kolMon = jednorazowy
-      ? frPdfEsc(frEuro(FR_ADDONS[k].amount)) + ' <small>einmalig</small>'
-      : frPdfEsc(frPdfText('#fr-addon-' + k + '-month'));
-    dodatkiRows += '<tr><td>' + frPdfEsc(nazwa) + '</td>'
-                 + '<td>' + kolTag + '</td>'
-                 + '<td>' + kolMon + '</td></tr>';
+    dodatki.push({
+      nazwa: lab ? lab.textContent.replace(/\s+/g,' ').trim() : k,
+      /* Oplata jednorazowa nie ma stawki dziennej - kolumna zostaje pusta,
+         a slowo "einmalig" stoi przy kwocie, tak jak we wzorcu v9. */
+      jednorazowy: !!(FR_ADDONS[k] && FR_ADDONS[k].per === 'once'),
+      tag:   kw('addon-' + k + '-day'),
+      monat: bezEinmalig(kw('addon-' + k + '-month'))
+    });
   });
 
-  /* --- odliczenia, jesli franczyzobiorca wlaczyl ich pokazywanie --- */
+  /* --- odliczenia: kwoty z panelu, zeby nie powstalo drugie zrodlo --- */
   var odlicz = [];
-  if(frChecked('fr-abzuege-toggle')){
-    var g1 = Number(frVal('fr-pflegegrad1')) || 0;
-    if(FR_PFLEGEGELD[g1]){
-      odlicz.push(['Pflegegeld', 'Pflegegrad Patient 1: <b>' + g1 + '</b>', FR_PFLEGEGELD[g1]]);
+  if(o.abzuege !== false){
+    var g1 = Number(frVal(p + 'pflegegrad1')) || 0;
+    if(g1) odlicz.push(['Pflegegeld', 'Pflegegrad Patient 1: <b>' + g1 + '</b>',
+                        v9Minus(kw('abzug-pflege1'))]);
+    if(Number(frVal(p + 'patient-count')) === 2){
+      var g2 = Number(frVal(p + 'pflegegrad2')) || 0;
+      if(g2) odlicz.push(['Pflegegeld', 'Pflegegrad Patient 2: <b>' + g2 + '</b>',
+                          v9Minus(kw('abzug-pflege2'))]);
     }
-    if(frPersons() === 2){
-      var g2 = Number(frVal('fr-pflegegrad2')) || 0;
-      if(FR_PFLEGEGELD[g2]){
-        odlicz.push(['Pflegegeld', 'Pflegegrad Patient 2: <b>' + g2 + '</b>', FR_PFLEGEGELD[g2]]);
-      }
-    }
-    if(frChecked('fr-verhinderung')) odlicz.push(['Verhinderungspflege', '', FR_VERHIND]);
-    if(frChecked('fr-steuer'))       odlicz.push(['Steuerersparnis', '', FR_STEUER]);
-  }
-  var maAbzuege = odlicz.length > 0;
-
-  var einmalig = frPdfText('#fr-summary-express');
-  var ile = 4;
-
-  /* ---------- strona 1: uklad v9 ----------
-     Odwzorowanie reference/silber.html z paczki wdrozeniowej. Trzy tabele
-     o tej samej siatce kolumn (opis / Pro Tag / Pro Monat), wybrany produkt
-     podswietlony kolorem z alfa, granatowy pasek kwoty koncowej.
-     Do srodka trafiaja wylacznie kwoty koncowe - cena zakupu i prowizja nie
-     maja tu zadnej reprezentacji, wiec nie moga wyciec do pliku klienta. */
-
-  /* Naglowek sekcji z firmowym podkresleniem - tym samym rysunkiem, ktory
-     jest pod logo i pod tytulami sekcji w zakladkach aplikacji. */
-  function v9Head2(tekst, produkt){
-    /* Podkreslenie jest tlem naglowka, nie osobnym obrazkiem. Obrazek
-       w przeplywie wnosilby do szerokosci swoje 757 px i rozpychal komorke
-       na cala kolumne; tlo skaluje sie dokladnie do dlugosci napisu. */
-    return '<h2 class="v9-h2">' + frPdfEsc(tekst) + '</h2>'
-      + (produkt ? '<span class="v9-summary-product">' + frPdfEsc(produkt) + '</span>' : '');
-  }
-  /* Odliczenia maja wszedzie ten sam znak minus (U+2212), takze w wierszu
-     "Abzuge gesamt", ktory w panelu jest skladany dywizem. */
-  function v9Minus(t){
-    return frPdfEsc(String(t || '').replace(/^\s*[-\u2013]\s*/, '\u2212 '));
-  }
-  function v9Cols(){
-    return '<colgroup><col class="desc"><col><col></colgroup>';
-  }
-  function v9Thead(naglowek){
-    return '<thead><tr><th>' + naglowek + '</th>'
-      + '<th>Pro Tag</th><th>Pro Monat</th></tr></thead>';
-  }
-  function v9Row(nazwa, tag, monat, klasa, tagHtml){
-    return '<tr' + (klasa ? ' class="' + klasa + '"' : '') + '>'
-      + '<td>' + nazwa + '</td>'
-      + '<td>' + (tagHtml != null ? tagHtml : frPdfEsc(tag || '')) + '</td>'
-      + '<td>' + (monat || '') + '</td></tr>';
+    if(frChecked(o.verhind)) odlicz.push(['Verhinderungspflege', '',
+                                          v9Minus(kw('abzug-verhinderung'))]);
+    if(frChecked(o.steuer))  odlicz.push(['Steuerersparnis', '',
+                                          v9Minus(kw('abzug-steuer'))]);
   }
 
-  var s1 = '<div class="fr-pdf-page fr-pdf-page--v9 fr-pdf-page--offer">'
+  return {
+    vorname: vor, nachname: nach, datum: dat,
+    kto: (vor + ' ' + nach).trim(),
+    datTxt: dat ? frDateDE(dat) : '',
+
+    produktLabel: txt('summary-produkt-label'),
+    produktTag:   kw('produkt-preis-tag'),
+    produktMonat: kw('produkt-preis'),
+
+    dodatki: dodatki,
+    wybraneDodatki: wybrane,
+
+    /* Rabat jest tylko w zakladce Angebot. Wiersz "Basistarif" pokazuje juz
+       kwote po rabacie, wiec rabat stoi w osobnym wierszu nad nim - inaczej
+       klient nie wiedzialby, skad sie wziela nizsza kwota. */
+    rabatt: o.rabatt || '',
+
+    basisTag:   kw('sum-base-day'),
+    basisMonat: kw('sum-base-month'),
+    mitTag:     kw('sum-base-addons-day'),
+    mitMonat:   kw('sum-base-addons-month'),
+    einmalig:   bezEinmalig(kw('summary-express')),
+    vorTag:     kw('gesamt-vor-tag'),
+    vorMonat:   kw('gesamt-vor'),
+
+    odliczenia:  odlicz,
+    abzuegeTag:   v9Minus(kw('summary-abzuege-tag')),
+    abzuegeMonat: v9Minus(kw('summary-abzuege-monat')),
+
+    tytulSumy: txt('main-summary-title') || 'Gesamt',
+    finalTag:  kw('summe-final-tag'),
+    finalMonat: kw('summe-final')
+  };
+}
+
+/* ---------- strona 1 ----------
+   Odwzorowanie reference/silber.html z paczki wdrozeniowej. Trzy tabele
+   o tej samej siatce kolumn (opis / Pro Tag / Pro Monat), wybrany produkt
+   podswietlony kolorem z alfa, granatowy pasek kwoty koncowej. */
+function v9Strona1(d, ile){
+  var maAbzuege = d.odliczenia.length > 0;
+  var dodatkiRows = d.dodatki.map(function(a){
+    return '<tr><td>' + frPdfEsc(a.nazwa) + '</td>'
+      + '<td>' + (a.jednorazowy ? '' : frPdfEsc(a.tag)) + '</td>'
+      + '<td>' + frPdfEsc(a.monat)
+      + (a.jednorazowy ? ' <small>einmalig</small>' : '') + '</td></tr>';
+  }).join('');
+
+  return '<div class="fr-pdf-page fr-pdf-page--v9 fr-pdf-page--offer">'
 
     /* --- naglowek strony: ten sam co na stronach 2-4 --- */
     + v9PageHead()
@@ -6385,12 +6474,12 @@ function frBuildPdfDoc(){
 
     /* --- tytul i adresat --- */
     +   '<div class="v9-heading">'
-    +     '<h1>Ihr persönliches<br>Angebot</h1>'
-    +     (kto || dat
+    +     '<h1>Ihr pers\u00f6nliches<br>Angebot</h1>'
+    +     (d.kto || d.datTxt
             ? '<div class="v9-recipient">'
-              + '<span>Persönlich erstellt für</span>'
-              + (kto ? '<strong>' + frPdfEsc(kto) + '</strong>' : '')
-              + (datTxt ? '<small>' + frPdfEsc(datTxt) + '</small>' : '')
+              + '<span>Pers\u00f6nlich erstellt f\u00fcr</span>'
+              + (d.kto ? '<strong>' + frPdfEsc(d.kto) + '</strong>' : '')
+              + (d.datTxt ? '<small>' + frPdfEsc(d.datTxt) + '</small>' : '')
               + '</div>'
             : '')
     +   '</div>'
@@ -6399,11 +6488,9 @@ function frBuildPdfDoc(){
 
     /* --- wybrana usluga --- */
     +   '<section class="v9-prices v9-selected"><table>' + v9Cols()
-    +     v9Thead(v9Head2('Ausgewählte Dienstleistung'))
+    +     v9Thead(v9Head2('Ausgew\u00e4hlte Dienstleistung'))
     +     '<tbody>'
-    +     v9Row(frPdfEsc(frPdfText('#fr-summary-produkt-label')),
-                frPdfText('#fr-produkt-preis-tag'),
-                frPdfEsc(frPdfText('#fr-produkt-preis')))
+    +     v9Row(frPdfEsc(d.produktLabel), d.produktTag, frPdfEsc(d.produktMonat))
     +     '</tbody></table></section>'
 
     /* --- dodatki --- */
@@ -6416,68 +6503,56 @@ function frBuildPdfDoc(){
     /* --- odliczenia --- */
     +   (maAbzuege
           ? '<section class="v9-deductions">'
-            + v9Head2('Abzüge')
+            + v9Head2('Abz\u00fcge')
             + '<div class="v9-ded-box">'
-            + odlicz.map(function(r){
+            + d.odliczenia.map(function(r){
                 return '<div class="v9-ded-row"><b>' + frPdfEsc(r[0]) + '</b>'
                   + (r[1] ? '<span>' + r[1] + '</span>' : '')
-                  + '<strong>− ' + frPdfEsc(frEuro(r[2])) + '</strong></div>';
+                  + '<strong>\u2212 ' + frPdfEsc(r[2]) + '</strong></div>';
               }).join('')
             + '</div></section>'
           : '')
 
     /* --- podsumowanie --- */
     +   '<section class="v9-prices v9-summary"><table>' + v9Cols()
-    +     v9Thead(v9Head2('Zusammenfassung', frPdfText('#fr-summary-produkt-label')))
+    +     v9Thead(v9Head2('Zusammenfassung', d.produktLabel))
     +     '<tbody>'
-    +     v9Row('Basistarif',
-                frPdfText('#fr-sum-base-day'),
-                frPdfEsc(frPdfText('#fr-sum-base-month')))
-    +     v9Row('Basistarif mit Zusatzoptionen',
-                frPdfText('#fr-sum-base-addons-day'),
-                frPdfEsc(frPdfText('#fr-sum-base-addons-month')))
-    +     (einmalig
-            ? v9Row('Einmalige Zuschläge: Express Service', '',
-                    frPdfEsc(einmalig) + ' <small>einmalig</small>')
+    +     (d.rabatt
+            ? v9Row('Rabatt auf Basistarif', '',
+                    '\u2212 ' + frPdfEsc(d.rabatt), 'v9-minus', '')
             : '')
-    +     v9Row('Summe vor Abzügen',
-                frPdfText('#fr-gesamt-vor-tag'),
-                frPdfEsc(frPdfText('#fr-gesamt-vor')), 'v9-subtotal')
+    +     v9Row('Basistarif', d.basisTag, frPdfEsc(d.basisMonat))
+    +     v9Row('Basistarif mit Zusatzoptionen', d.mitTag, frPdfEsc(d.mitMonat))
+    +     (d.einmalig
+            ? v9Row('Einmalige Zuschl\u00e4ge: Express Service', '',
+                    frPdfEsc(d.einmalig) + ' <small>einmalig</small>')
+            : '')
+    +     v9Row('Summe vor Abz\u00fcgen', d.vorTag, frPdfEsc(d.vorMonat), 'v9-subtotal')
     +     (maAbzuege
-            ? v9Row('Abzüge gesamt',
-                    '',
-                    v9Minus(frPdfText('#fr-summary-abzuege-monat')),
-                    'v9-minus', v9Minus(frPdfText('#fr-summary-abzuege-tag')))
+            ? v9Row('Abz\u00fcge gesamt', '',
+                    '\u2212 ' + frPdfEsc(d.abzuegeMonat),
+                    'v9-minus', '\u2212 ' + frPdfEsc(d.abzuegeTag))
             : '')
     +     '</tbody></table></section>'
 
     /* --- kwota koncowa --- */
     +   '<section class="v9-total">'
-    +     '<div><span>' + frPdfEsc(frPdfText('#fr-main-summary-title')) + '</span>'
-    +       (einmalig ? '<small>zzgl. ' + frPdfEsc(einmalig) + ' einmalig</small>' : '')
+    +     '<div><span>' + frPdfEsc(d.tytulSumy) + '</span>'
+    +       (d.einmalig ? '<small>zzgl. ' + frPdfEsc(d.einmalig) + ' einmalig</small>' : '')
     +     '</div>'
     +     '<div class="v9-total-daily"><small>Pro Tag</small><strong>'
-    +       frPdfEsc(frPdfText('#fr-summe-final-tag')) + '</strong></div>'
+    +       frPdfEsc(d.finalTag) + '</strong></div>'
     +     '<div class="v9-total-monthly"><small>Pro Monat</small><strong>'
-    +       frPdfEsc(frPdfText('#fr-summe-final')) + '</strong></div>'
+    +       frPdfEsc(d.finalMonat) + '</strong></div>'
     +   '</section>'
 
     +   (maAbzuege
-          ? '<p class="v9-share-note">Der persönliche Anteil ist der monatliche Betrag '
-            + 'nach Abzug aller aufgeführten Leistungen und Zuschüsse.</p>'
+          ? '<p class="v9-share-note">Der pers\u00f6nliche Anteil ist der monatliche Betrag '
+            + 'nach Abzug aller aufgef\u00fchrten Leistungen und Zusch\u00fcsse.</p>'
           : '')
 
     /* --- opinie: same logotypy i odeslanie do zrodla --- */
-    +   '<aside class="v9-trust">'
-    +     '<div class="v9-trust-intro"><strong>Erfahrungen mit Betreuung24</strong>'
-    +       '<span>Lesen Sie, was Kunden berichten.</span></div>'
-    +     '<a class="v9-trust-brand" href="https://www.provenexpert.com/de-de/betreuung24/">'
-    +       '<img src="offer-provenexpert.svg" alt="ProvenExpert">'
-    +       '<span>Bewertungen ansehen</span></a>'
-    +     '<a class="v9-trust-brand" href="https://de.trustpilot.com/review/betreuung24.de">'
-    +       '<img src="offer-trustpilot.svg" alt="Trustpilot">'
-    +       '<span>Bewertungen ansehen</span></a>'
-    +   '</aside>'
+    +   v9Trust()
 
     /* --- zastrzezenia --- */
     +   '<section class="v9-legal">'
@@ -6485,60 +6560,85 @@ function frBuildPdfDoc(){
     +     'Ostersonntag, Ostermontag, Erster Mai, Pfingstsonntag, Pfingstmontag, '
     +     'Tag der Deutschen Einheit, Allerheiligen (01.11.), Heiligabend (24.12.), '
     +     'sowie der Erste und Zweite Weihnachtstag.</p>'
-    +     '<p>Eine Beispielberechnung für 30 Tage Dienstleistungserbringung.</p>'
-    +     '<p>Dies ist ein unverbindliches Angebot. Steuerliche Abzugsfähigkeit, '
-    +     'insbesondere im Rahmen der haushaltsnahen Dienstleistungen, ist grundsätzlich '
-    +     'möglich, muss jedoch vom Kunden selbst beantragt und mit dem zuständigen '
-    +     'Finanzamt geklärt werden. Eine Garantie für die steuerliche Anerkennung kann '
-    +     'nicht übernommen werden.</p>'
+    +     '<p>Eine Beispielberechnung f\u00fcr 30 Tage Dienstleistungserbringung.</p>'
+    +     '<p>Dies ist ein unverbindliches Angebot. Steuerliche Abzugsf\u00e4higkeit, '
+    +     'insbesondere im Rahmen der haushaltsnahen Dienstleistungen, ist grunds\u00e4tzlich '
+    +     'm\u00f6glich, muss jedoch vom Kunden selbst beantragt und mit dem zust\u00e4ndigen '
+    +     'Finanzamt gekl\u00e4rt werden. Eine Garantie f\u00fcr die steuerliche Anerkennung kann '
+    +     'nicht \u00fcbernommen werden.</p>'
     +   '</section>'
 
     + '</div>'
 
     /* --- stopka: wylacznie dane centrali --- */
-    + v9PageFoot(1, ile, 'Kostenübersicht', kto, datTxt)
+    + v9PageFoot(1, ile, 'Kosten\u00fcbersicht', d.kto, d.datTxt)
 
     + '</div>';
+}
 
-  /* ---------- strony 2-4: uklad v9 ---------- */
-  var pelnaEtykieta = (FR_PRODUCTS[frPaket()] || {}).label || '';
-  var krotkaNazwa   = pelnaEtykieta.split(' ').pop();
+/* Caly dokument: strona 1 plus trzy strony opisowe. */
+function v9BuildDoc(d){
+  var doc = document.getElementById('fr-pdf-doc');
+  if(!doc) return null;
+  var ile = 4;
 
   var s2 = v9Strona(2, ile, 'v9-page-lang', 'Sprachpakete', 'Produktbeschreibung',
-    (krotkaNazwa
+    (d.produktLabel
       ? '<p class="v9-intro">F\u00fcr Ihr Angebot ist das Sprachpaket <strong>'
-        + frPdfEsc(krotkaNazwa) + '</strong> vorgesehen.<br>'
+        + frPdfEsc(d.produktLabel.split(' ').pop()) + '</strong> vorgesehen.<br>'
         + 'Hier sehen Sie die Unterschiede im \u00dcberblick.</p>'
       : ''),
-    v9Sprachpakete(pelnaEtykieta)
-      + (pelnaEtykieta
+    v9Sprachpakete(d.produktLabel)
+      + (d.produktLabel
          ? '<div class="v9-quiet"><p>Ihr gew\u00e4hltes Sprachpaket: <strong>'
-           + frPdfEsc(pelnaEtykieta) + '</strong><br>'
+           + frPdfEsc(d.produktLabel) + '</strong><br>'
            + 'Die Kosten finden Sie in Ihrer \u00dcbersicht auf Seite 1.</p></div>'
          : ''),
-    'Sprachpakete', kto, datTxt);
+    'Sprachpakete', d.kto, d.datTxt);
 
   var s3 = v9Strona(3, ile, 'v9-page-serv', 'Allgemeine', 'Produktbeschreibung',
     '<p class="v9-intro v9-claim-line">Damit wieder mehr Zeit f\u00fcreinander bleibt.</p>',
-    v9Leistungen(), 'Leistungsumfang', kto, datTxt);
+    v9Leistungen(), 'Leistungsumfang', d.kto, d.datTxt);
 
-  var dod = v9Zusatz();
+  var dod = v9Zusatz(d.wybraneDodatki);
   var s4 = v9Strona(4, ile, 'v9-page-opt', 'Beschreibung der', 'Zusatzleistungen',
     '<p class="v9-intro">' + (dod.sel
       ? 'Diese Erg\u00e4nzungen sind in Ihrem Angebot enthalten.'
       : '\u00dcbersicht der m\u00f6glichen Erg\u00e4nzungen zu Ihrer Betreuung.') + '</p>',
-    dod.html + v9Kontakt() + v9Trust(), 'Zusatzleistungen', kto, datTxt);
+    dod.html + v9Kontakt() + v9Trust(), 'Zusatzleistungen', d.kto, d.datTxt);
 
-  doc.innerHTML = s1 + s2 + s3 + s4;
+  doc.innerHTML = v9Strona1(d, ile) + s2 + s3 + s4;
   frFitPage1(doc);
   return doc;
 }
 
-function frPdfFilename(){
-  var parts = ['Angebot',
-    String(frVal('fr-nachname')).trim(),
-    String(frVal('fr-vorname')).trim(),
-    String(frVal('fr-datum')).trim()].filter(Boolean);
+/* --- dwie zakladki, jeden szablon --- */
+function frDaneOferty(){
+  return v9Dane('fr-', {
+    abzuege: frChecked('fr-abzuege-toggle'),
+    verhind: 'fr-verhinderung',
+    steuer:  'fr-steuer'
+  });
+}
+function angDaneOferty(){
+  /* Zakladka Angebot nie ma przelacznika odliczen - pokazuje je zawsze,
+     gdy sa wieksze od zera. Ma za to rabat na taryfe bazowa. */
+  var badge = document.getElementById('discount-badge');
+  var el  = document.getElementById('discount-badge-val');
+  var rab = (badge && badge.style.display !== 'none' && el)
+    ? v9Minus(el.textContent.trim()) : '';
+  return v9Dane('', {
+    verhind: 'abzug-verhinderung-check',
+    steuer:  'abzug-steuer-check',
+    rabatt:  rab
+  });
+}
+function frBuildPdfDoc(){  return v9BuildDoc(frDaneOferty()); }
+function angBuildPdfDoc(){ return v9BuildDoc(angDaneOferty()); }
+
+function v9Filename(d){
+  var parts = ['Angebot', d.nachname, d.vorname, String(d.datum || '').trim()]
+    .filter(Boolean);
   return parts.join('-')
     .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue')
     .replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss')
@@ -6547,12 +6647,15 @@ function frPdfFilename(){
 }
 
 
-async function frSavePdf(){
-  var btn = document.getElementById('fr-pdf-btn');
+/* Zapis pliku jest wspolny dla obu zakladek: rozni sie tylko to, skad
+   pochodza dane i ktory przycisk ma pokazac postep. */
+async function v9SavePdf(o){
+  var btn = document.getElementById(o.btn);
   var old = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'PDF wird erstellt\u2026'; }
   try{
-    var doc = frBuildPdfDoc();
+    var dane = o.dane();
+    var doc  = v9BuildDoc(dane);
     if(!doc || !doc.querySelectorAll('.fr-pdf-page').length) throw new Error('empty_document');
 
     /* Na serwer leci sam dokument. Arkusz stylow, font i grafiki serwer
@@ -6562,7 +6665,7 @@ async function frSavePdf(){
       method: 'POST',
       body: JSON.stringify({
         html:  doc.innerHTML,
-        title: frPdfFilename().replace(/\.pdf$/, '')
+        title: v9Filename(dane).replace(/\.pdf$/, '')
       })
     });
 
@@ -6575,34 +6678,45 @@ async function frSavePdf(){
     var url  = URL.createObjectURL(blob);
     var a    = document.createElement('a');
     a.href = url;
-    a.download = frPdfFilename();
+    a.download = v9Filename(dane);
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
 
-    frShowMsg('fr-save-msg', '\u2713 PDF gespeichert.', 'ok');
+    frShowMsg(o.msg, '\u2713 PDF gespeichert.', 'ok');
   } catch(e){
     var code = String((e && e.message) || '');
     /* Uciety dokument nie moze trafic do klienta - wtedy zadnego pliku
        ani okna drukowania, tylko jasny komunikat. */
     if(code === 'layout_overflow'){
-      frShowMsg('fr-save-msg',
+      frShowMsg(o.msg,
         'Das Angebot passt nicht auf die Seiten. Bitte k\u00fcrzen Sie die Eingaben oder melden Sie den Fall.',
         'warn');
     } else {
-      frShowMsg('fr-save-msg',
+      frShowMsg(o.msg,
         code === 'renderer_unavailable'
           ? 'PDF-Dienst ist in dieser Umgebung nicht verf\u00fcgbar \u2014 es wird der Druckdialog ge\u00f6ffnet.'
           : 'PDF konnte nicht erstellt werden \u2014 es wird der Druckdialog ge\u00f6ffnet.',
         'warn');
-      frPrintOffer();
+      if(o.zapas) o.zapas();
     }
   } finally {
     var doc2 = document.getElementById('fr-pdf-doc');
     if(doc2) doc2.innerHTML = '';
     if(btn){ btn.disabled = false; btn.textContent = old || 'PDF speichern'; }
   }
+}
+function frSavePdf(){
+  return v9SavePdf({ btn:'fr-pdf-btn', msg:'fr-save-msg',
+                     dane: frDaneOferty, zapas: frPrintOffer });
+}
+/* Zakladka Angebot: nowy przycisk obok starego wydruku. Gdy serwerowy
+   render nie odpowie, otwiera sie stare okno drukowania - konsultant nie
+   zostaje bez niczego. */
+function angSavePdf(){
+  return v9SavePdf({ btn:'ang-pdf-btn', msg:'ang-save-msg',
+                     dane: angDaneOferty, zapas: printAngebot });
 }
 
 function frPrintOffer(){

@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **29.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`85d80b7`** · wypchnięty na GitHub
+Ostatni commit **`__HASH__`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -11,11 +11,70 @@ Ostatni commit **`85d80b7`** · wypchnięty na GitHub
 | 4 | Interfejs — zakładka Franchise | ✅ |
 | 5 | Domknięcie | ✅ 5/7 — 2 odłożone decyzją PO |
 | 6 | Cennik | ✅ cennik z 28.10.2026 wdrożony w obu modułach |
-| 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.4 zrobione, 7.5 następne |
+| 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.5 zrobione, 7.6 następne |
 
 ---
 
 ## Sesja 29.10.2026
+
+### Commit `__HASH__` — Angebot dostaje ofertę w układzie v9 (krok 7.5)
+
+**Zgłoszenie PO:** „dalej jest problem z zakładką Angebot i generowanym PDF.
+Dodaj nowy przycisk, gdzie generowany będzie PDF w nowej wersji."
+
+- [x] **Układ strony 1 wyszedł do wspólnego szablonu.** `v9Strona1()`
+      dostaje gotowe kwoty i nie wie, z której zakładki pochodzą; zbiera je
+      `v9Dane()`. Obie zakładki mają te same nazwy pól, Franchise
+      z przedrostkiem `fr-`, więc zbieracz jest jeden. Strony 2–4 są wspólne
+      od kroku 7.4, więc Angebot dostał je od razu.
+- [x] **Nowy przycisk „PDF speichern" w zakładce Angebot.** Obok zostaje
+      stary „PDF / Drucken (alt)" — decyzja PO z 29.10: stary zostaje na czas
+      prób. Gdy render na serwerze nie odpowie, nowy przycisk sam otwiera
+      stare okno drukowania, więc konsultant nie zostaje z niczym.
+- [x] **Pola klienta w Angebot** (Vorname, Nachname, Datum) — karta „Kunde"
+      w panelu ustawień, data domyślnie dzisiejsza. Panel ustawień jest
+      ukryty przy starym wydruku, więc nic się tam nie zmienia.
+- [x] **Rabat na ofercie.** Zakładka Angebot ma rabat na taryfę bazową,
+      którego moduł franczyzowy nie ma. Wiersz „Basistarif" pokazuje kwotę
+      już po rabacie, więc rabat stoi osobnym wierszem nad nim — inaczej
+      klient nie wiedziałby, skąd niższa kwota.
+- [x] **Zamknięty błąd z 28.10:** nagłówek „Persönlicher Anteil nach allen
+      Abzügen" był w Angebot wpisany na stałe i pokazywał się nawet przy
+      zerowych odliczeniach. Teraz przełącza się na „Gesamt", tak jak
+      we Franchise.
+
+#### Dwa błędy znalezione przy sprawdzaniu
+
+- **„einmalig" dublowało się.** Panel Angebot dopisuje do kwoty Express
+  słowo „(einmalig)", a szablon stawia je sam — na ofercie stało dwa razy.
+  Zbieracz danych zdejmuje je teraz z kwoty.
+- **Spacja przed znakiem euro.** Po przejściu na odczyt kwot z panelu
+  część kwot traciła spację nierozdzielającą i „300,00" mogło trafić do
+  innego wiersza niż „€". Kwoty czytane są teraz bez zamiany tej spacji.
+
+#### Sprawdzone renderem — sześć wariantów
+
+| Wariant | Moduł | Stron | Poza kartkę |
+| --- | --- | --- | --- |
+| Silber + 600 €, bez dodatków | Franchise | 4 | — |
+| Silber + 600 €, Führerschein, Pflegegrad 3 | Franchise | 4 | — |
+| Platin + 1.200 €, komplet | Franchise | 4 | — |
+| Bronze, bez dodatków i odliczeń | Angebot | 4 | — |
+| Silber, rabat 200 €, Führerschein, Pflegegrad 3 | Angebot | 4 | — |
+| Platin, rabat 300 €, 5 dodatków, 2 pacjentów, pełne odliczenia | Angebot | 4 | — |
+
+Kontrola kwot (Angebot, wariant maksymalny): 3.600 − 300 rabatu = 3.300 €,
+dodatki 37 €/dzień × 30 = 1.110 € → 4.410 €, odliczenia 990 + 800 + 294 +
+333 = 2.417 € → **1.993 €/mies.** Zgadza się z panelem.
+
+Oferta franczyzowa wychodzi z nowego szablonu z tą samą treścią co przed
+przebudową — sprawdzone porównaniem tekstu plików. W żadnym z sześciu
+plików nie ma ceny zakupu ani prowizji.
+
+#### Czego ten krok nie obejmuje
+
+Stary przycisk „PDF / Drucken (alt)" nadal drukuje żywy panel. Zniknie,
+gdy PO potwierdzi, że nowy plik jest w porządku.
 
 ### Commit `85d80b7` — strony 2, 3 i 4 w układzie v9 (krok 7.4 zamknięty)
 
@@ -301,8 +360,8 @@ podpiąć gotowy szablon.
 | 7.2 | Silnik PDF na serwerze, styl wydzielony do pliku | ✅ `2147256` |
 | 7.3 | Strona 1 w układzie v9, na danych z kalkulatora | ✅ `724297c` |
 | 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | ✅ `49a954e` + `85d80b7` |
-| 7.5 | Angebot na wspólny szablon oferty | ⬜ **następne** |
-| 7.6 | Odtworzenie obu przykładów i porównanie ze wzorcami | ⬜ |
+| 7.5 | Angebot na wspólny szablon oferty | ✅ `__HASH__` |
+| 7.6 | Odtworzenie obu przykładów i porównanie ze wzorcami | ⬜ **następne** |
 
 ### Stałe wizualne v9
 
@@ -370,7 +429,7 @@ do PO do zatwierdzenia w kroku 7.6.
 | Logotypy opinii na stronie 4 | ✅ 29.10 — **zostają**, jak we wzorcu |
 | `harness.cjs` w repozytorium | ✅ 29.10 — **tak**, `npm run check-pdf` |
 | Adresat na ofercie Angebot | ✅ 29.10 — **pola klienta, tak jak we Franchise** (wzorzec ich nie ma, PO chce) |
-| Stare drukowanie w Angebot | ✅ 29.10 — **nowy przycisk je zastępuje**, nie zostaje jako zapas |
+| Stare drukowanie w Angebot | ✅ 29.10 — **zostaje na czas prób** obok nowego (zmiana decyzji z tego samego dnia) |
 | Rabat kwotowy | Brak — tylko prowizja |
 | Widełki prowizji | Brak limitów |
 | Dwóch pacjentów | Tak, wyłącznie przez dodatek 15 €/dzień |
