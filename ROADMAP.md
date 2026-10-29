@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
-Stan na **28.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`d7ca26f`** · wypchnięty na GitHub
+Stan na **29.10.2026** · gałąź `feature/franchise-calculator`
+Ostatni commit **`85d80b7`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -11,7 +11,62 @@ Ostatni commit **`d7ca26f`** · wypchnięty na GitHub
 | 4 | Interfejs — zakładka Franchise | ✅ |
 | 5 | Domknięcie | ✅ 5/7 — 2 odłożone decyzją PO |
 | 6 | Cennik | ✅ cennik z 28.10.2026 wdrożony w obu modułach |
-| 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.3 zrobione, 7.4 następne |
+| 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.4 zrobione, 7.5 następne |
+
+---
+
+## Sesja 29.10.2026
+
+### Commit `85d80b7` — strony 2, 3 i 4 w układzie v9 (krok 7.4 zamknięty)
+
+Cała oferta jest teraz w jednym stylu. Wcześniej strony opisowe miały własny
+nagłówek z pomarańczowym paskiem i inną typografię, więc w jednym pliku PDF
+widać było dwa układy.
+
+- [x] **Nagłówek i stopka wspólne dla czterech stron.** `v9PageHead()`
+      i `v9PageFoot()` — jedno miejsce, więc strony nie rozjadą się przy
+      następnej zmianie. Stopka niesie `Kunde · data · tytuł strony`
+      i numer, dokładnie jak na stronie 1.
+- [x] **Strona 2 — Sprachpakete.** Dwie kolumny jak we wzorcu: po lewej
+      „Seniorenbetreuung", nazwa pakietu i liczba słów, po prawej opis.
+      Wybrany pakiet zachowuje podświetlenie z `49a954e`. Pod listą nota
+      „Ihr gewähltes Sprachpaket … Die Kosten finden Sie auf Seite 1".
+- [x] **Strona 3 — Allgemeine Produktbeschreibung.** Punkty
+      z pomarańczowym znacznikiem, nagłówki sekcji 13,4 pt. Zdanie
+      „Der genaue Umfang …" stoi jako nota „Auf Ihren Alltag abgestimmt."
+      pod listą, a nie jako ostatni punkt — tak jak we wzorcu.
+- [x] **Strona 4 — Zusatzleistungen.** Dodatki wliczone w tę konkretną
+      ofertę dostają pomarańczową kropkę i podpis „Für Ihr Angebot
+      ausgewählt"; pozostałe zostają jako sam opis. Gdy franczyzobiorca nie
+      wybrał żadnego dodatku, wprowadzenie brzmi „Übersicht der möglichen
+      Ergänzungen", żeby strona nie twierdziła nieprawdy.
+- [x] **Blok kontaktowy „Wir sind für Sie da."** — granatowy, numer
+      `0800 723 5 723` jako link `tel:08007235723`, sprawdzony w gotowym
+      pliku. Pod nim logotypy ProvenExpert i Trustpilot, jak we wzorcu.
+
+#### Pułapka: marginesy z ramy strony biły wprowadzenie
+
+Rama strony zeruje marginesy akapitów (`.fr-pdf-page--v9 p`). Reguła
+`.v9-intro` ma słabszą wagę, więc odstęp nad wprowadzeniem nie działał
+i tekst kleił się do tytułu. Reguła jest teraz zagnieżdżona
+(`.v9-doc .v9-intro`). Strony 1 nie ruszamy — jej proporcje są zmierzone
+i zatwierdzone w kroku 7.3.
+
+#### Sprawdzone renderem serwerowym, bez bazy i bez logowania
+
+| Wariant | Stron | Font | Poza kartkę | Link `tel:` |
+| --- | --- | --- | --- | --- |
+| Silber + 600 €, bez dodatków | 4 | Alan Sans | — | ✅ strona 4 |
+| Silber + 600 €, Führerschein, Pflegegrad 3 | 4 | Alan Sans | — | ✅ strona 4 |
+| Platin + 1.200 €, 5 dodatków, 2 pacjentów, pełne odliczenia | 4 | Alan Sans | — | ✅ strona 4 |
+
+Strona 1 bez zmian: krótka oferta zostaje w proporcjach wzorca, wariant
+maksymalny schodzi do `v9-tightest`. Przeszukanie treści PDF-a: **nie ma
+w nim ceny zakupu ani prowizji** w żadnym z trzech wariantów.
+
+#### Czego ten krok nie obejmuje
+
+Zakładka Angebot nadal drukuje żywy panel i ma własny wygląd — to krok 7.5.
 
 ---
 
@@ -245,8 +300,8 @@ podpiąć gotowy szablon.
 | 7.1 | Decyzje: mechanizm PDF i zakres modułów | ✅ B + oba moduły |
 | 7.2 | Silnik PDF na serwerze, styl wydzielony do pliku | ✅ `2147256` |
 | 7.3 | Strona 1 w układzie v9, na danych z kalkulatora | ✅ `724297c` |
-| 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | 🔄 podświetlenie pakietu zrobione (`49a954e`); zostaje układ v9 stron 2–4 i blok kontaktowy — **następne** |
-| 7.5 | Angebot na wspólny szablon oferty | ⬜ po 7.4 |
+| 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | ✅ `49a954e` + `85d80b7` |
+| 7.5 | Angebot na wspólny szablon oferty | ⬜ **następne** |
 | 7.6 | Odtworzenie obu przykładów i porównanie ze wzorcami | ⬜ |
 
 ### Stałe wizualne v9
@@ -334,6 +389,10 @@ do PO do zatwierdzenia w kroku 7.6.
 1. **Wdrożenie produkcyjne** — kiedy i czy. Produkcja stoi na `main`,
    na SQLite, nietknięta, ze **starym cennikiem** (2 700 / 3 100 / 3 600 /
    3 900 €). Konsultanci wystawiają dziś oferty po starych cenach.
+2. **Czy `harness.cjs` ma trafić do repozytorium.** Skrypt renderuje PDF
+   bez bazy i bez logowania; dziś pisany jest od nowa w każdej sesji, bo
+   nie ma go w repozytorium. Dopisanie to kilkadziesiąt linii kodu
+   testowego obok aplikacji.
 
 ## Do zrobienia niezależnie od etapów
 
@@ -420,6 +479,8 @@ Trzy moduły: Angebot, Kreator CV, franczyzowy generator ofert.
   przeglądarce `beforePrint()` liczy wysokość, gdy zakładka jest jeszcze
   ukryta (`offsetHeight === 0`), więc jego automatyczne skalowanie nigdy
   się nie włącza — to martwy kod, znika razem z krokiem 7.5.
+- **`harness.cjs` nie leży w repozytorium** — powstaje od nowa w każdej
+  sesji. Do decyzji PO, czy go dopisać (sekcja „Wymaga decyzji", punkt 2).
 - **Test renderu bez bazy i bez logowania:** `harness.cjs` — mały serwer
   statyczny na plikach repozytorium, Playwright otwiera `index.html`,
   ustawia pola `fr-*`, woła `frRecalc()` i `frBuildPdfDoc()`, oddaje
