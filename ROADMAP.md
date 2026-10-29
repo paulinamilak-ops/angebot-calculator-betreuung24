@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **29.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`2803a82`** · wypchnięty na GitHub
+Ostatni commit **`__HASH__`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -11,7 +11,83 @@ Ostatni commit **`2803a82`** · wypchnięty na GitHub
 | 4 | Interfejs — zakładka Franchise | ✅ |
 | 5 | Domknięcie | ✅ 5/7 — 2 odłożone decyzją PO |
 | 6 | Cennik | ✅ cennik z 28.10.2026 wdrożony w obu modułach |
-| 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.5 zrobione, 7.6 następne |
+| 7 | Nowy wygląd oferty v9 | 🔄 7.1–7.5 zrobione, 7.6 zostaje |
+| 8 | Cenniki w panelu administratora | 🔄 8.1 i 8.2 zrobione, 8.3 następne |
+
+---
+
+## Etap 8 — cenniki w panelu administratora
+
+Cennik przestaje być PDF-em i kodem. Administrator tworzy go w panelu,
+wybiera rodzaj — **zwykły** (zakładka Angebot) albo **franczyzowy**
+(moduł Franchise) — i wpisuje kwoty. Generator ofert bierze cennik
+odpowiedni dla modułu.
+
+| Kawałek | Zakres | Stan |
+| --- | --- | --- |
+| 8.1 | Baza i API cenników | ✅ `__HASH__` |
+| 8.2 | Zakładka „Preislisten" w panelu admina | ✅ `__HASH__` |
+| 8.3 | Generatory biorą cennik z bazy | ⬜ **następne** |
+
+### Decyzje PO z 29.10.2026
+
+| Sprawa | Decyzja |
+| --- | --- |
+| Co edytujemy | Pakiety i dodatki. Odliczenia (Pflegegeld, Verhinderungspflege, Steuerersparnis) zostają w kodzie — to stawki ustawowe, nie decyzja cenowa |
+| Zmiana w czasie | Cenniki z datą obowiązywania; nowy startuje sam w swoim dniu, stare zostają na liście |
+| Kwoty startowe | Oba cenniki zakładane z dzisiejszymi kwotami (2.600/87, 2.900/97, 3.300/110, 3.600/120) |
+
+### Commit `__HASH__` — baza, API i panel (8.1 + 8.2)
+
+- [x] **Tabela `price_lists`** (migracja `005`): rodzaj, nazwa, data
+      obowiązywania, kwoty pakietów i dodatków. Para rodzaj + data jest
+      unikalna — dwa cenniki na ten sam dzień czyniłyby z wyboru loterię.
+      Migracja zakłada od razu oba cenniki na kwotach z 28.10.2026.
+- [x] **Cennik to same kwoty.** Nazwy pakietów i dodatków oraz to, który
+      dodatek jest jednorazowy, zostają w kodzie: literówka w nazwie
+      trafiłaby prosto na ofertę dla klienta.
+- [x] **Endpointy** `/pricing/*`: lista, zapis, edycja, kasowanie (tylko
+      administrator) oraz `/pricing/active` — obowiązujący cennik dla roli.
+      Nowy blok `location /pricing/` w `nginx-calculator.conf`.
+- [x] **Zakładka „💶 Preislisten"** w panelu administratora: formularz
+      z wyborem rodzaju i datą, kwoty czterech pakietów i pięciu dodatków,
+      lista cenników z oznaczeniem „obowiązuje" i „od DD.MM.RRRR" dla
+      przyszłych. Kasowanie z potwierdzeniem na samym przycisku — okno
+      `confirm()` nie pokazuje się w panelu przeglądarki Claude.
+
+#### Czego aplikacja pilnuje za administratora
+
+- Cennik, który **obowiązuje w tej chwili**, nie daje się skasować.
+- **Ostatni** cennik danego rodzaju nie daje się skasować — moduł nigdy
+  nie zostaje bez cennika.
+- Pusta lub zerowa kwota, brak nazwy, zły rodzaj → czytelny komunikat
+  i zapis nie dochodzi do skutku. Cennik zapisuje się w całości albo wcale.
+- Franczyzobiorca i konsultant nie widzą listy cenników ani cudzego
+  rodzaju — ceny zakupu nie mogą trafić do przeglądarki partnera.
+
+#### Błąd znaleziony przy sprawdzaniu
+
+**Data obowiązywania cofała się o jeden dzień.** Sterownik bazy zamienia
+kolumnę `DATE` na północ czasu lokalnego, a powrót do zapisu ISO przesuwa
+dzień wstecz w każdej strefie na wschód od Londynu — cennik „od 28.10"
+wracał jako „27.10". Data przychodzi teraz z bazy jako tekst.
+
+#### Sprawdzone na prawdziwej bazie i w przeglądarce
+
+Postgres postawiony na czas testu, migracje przeszły, serwer wstał.
+Przejście: lista cenników, cennik „od 1 grudnia" założony z wyprzedzeniem
+(dziś nadal obowiązuje stary, 5 grudnia już nowy), próba dwóch cenników
+na ten sam dzień → odmowa, puste kwoty → odmowa, edycja, kasowanie
+obowiązującego → odmowa, kasowanie przyszłego → wykonane, konsultant
+próbujący zapisać cennik → odmowa. Panel przeklikany w prawdziwej
+przeglądarce: cennik franczyzowy założony z poziomu formularza,
+lista pokazuje go jako przyszły.
+
+#### Czego ten krok nie obejmuje
+
+**Oferty nadal liczą się z kwot wpisanych w kodzie.** To, co wpiszesz
+w panelu, zacznie wpływać na oferty dopiero w kroku 8.3 — do tego czasu
+nic nie przełączy się po cichu.
 
 ---
 

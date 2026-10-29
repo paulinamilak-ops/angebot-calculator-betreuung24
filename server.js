@@ -815,6 +815,221 @@ app.delete('/cv/:id',    requireApiKey, async (req, res) => {
 });
 
 // ============================================================
+// PRICE LISTS (admin-managed, stored in the database)
+// ============================================================
+// A price list is amounts only. Package and add-on names live here in the
+// code: they are not a pricing decision, and a typo in a name would reach
+// the customer offer. The admin panel edits figures, nothing else.
+//
+// The list in force for a kind is the newest row whose valid_from is not in
+// the future, so a list can be prepared in advance and starts on its own.
+//
+// Step 8.3 hooks the two calculators onto these rows. Until then the
+// constants further down still drive the offers, and this section only
+// stores and serves what the admin panel writes.
+
+const PRICE_KINDS   = ['standard', 'franchise'];
+const PRODUCT_KEYS  = ['bronze', 'silber', 'gold', 'platin'];
+const ADDON_KEYS    = ['express', 'fuehrerschein', 'zweitepersonhh',
+                       'zweitepersonzb', 'sonderbetreuung'];
+
+const PRODUCT_LABELS = {
+  bronze: 'Seniorenbetreuung Bronze',
+  silber: 'Seniorenbetreuung Silber',
+  gold:   'Seniorenbetreuung Gold',
+  platin: 'Seniorenbetreuung Platin'
+};
+const ADDON_LABELS = {
+  express:         'Express (Start innerhalb von 4 Arbeitstagen)',
+  fuehrerschein:   'Führerschein',
+  zweitepersonhh:  'Zweite Person im Haushalt',
+  zweitepersonzb:  'Zweite zu betreuende Person',
+  sonderbetreuung: 'Sonderbetreuung'
+};
+// Express is charged once, the rest per day. Not editable: it is the shape
+// of the offer, not a price.
+const ADDON_PER = {
+  express: 'once', fuehrerschein: 'day', zweitepersonhh: 'day',
+  zweitepersonzb: 'day', sonderbetreuung: 'day'
+};
+
+function priceNumber(v, label) {
+  const n = Number(String(v == null ? '' : v).replace(',', '.'));
+  if (!isFinite(n) || n <= 0) throw new Error(`${label}: Betrag muss größer als 0 sein`);
+  return Math.round(n * 100) / 100;
+}
+
+/** Validates what the admin panel sent. Rejects a half-filled list rather
+ *  than storing one that would make the calculator fall over later. */
+function parsePriceList(body) {
+  const b = body || {};
+  const kind = String(b.kind || '').trim();
+  if (!PRICE_KINDS.includes(kind)) throw new Error('Unbekannte Art der Preisliste');
+
+  const name = String(b.name || '').trim();
+  if (!name) throw new Error('Name der Preisliste fehlt');
+  if (name.length > 120) throw new Error('Name ist zu lang');
+
+  const valid = String(b.valid_from || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valid)) throw new Error('Datum fehlt oder ist ungültig');
+
+  const products = {};
+  for (const k of PRODUCT_KEYS) {
+    const src = (b.products || {})[k] || {};
+    products[k] = {
+      monat: priceNumber(src.monat, PRODUCT_LABELS[k] + ' (Pro Monat)'),
+      tag:   priceNumber(src.tag,   PRODUCT_LABELS[k] + ' (Pro Tag)')
+    };
+  }
+  const addons = {};
+  for (const k of ADDON_KEYS) {
+    const src = (b.addons || {})[k] || {};
+    addons[k] = { amount: priceNumber(src.amount, ADDON_LABELS[k]) };
+  }
+  return { kind, name, valid_from: valid, products, addons };
+}
+
+// The date comes back as text from the query (valid_from_text), not as a
+// JS Date: the driver turns a DATE into local midnight, and converting that
+// back to ISO moves the day by one in any time zone east of London.
+function priceListRow(r) {
+  return {
+    id: r.id, kind: r.kind, name: r.name,
+    valid_from: String(r.valid_from_text || r.valid_from).slice(0, 10),
+    products: r.products, addons: r.addons
+  };
+}
+
+/** The list in force for a kind on a given day. */
+async function activePriceList(kind, onDate) {
+  const r = await db.query(
+    `SELECT *, to_char(valid_from, 'YYYY-MM-DD') AS valid_from_text
+       FROM price_lists
+      WHERE kind = $1 AND valid_from <= $2
+      ORDER BY valid_from DESC LIMIT 1`,
+    [kind, onDate || new Date().toISOString().slice(0, 10)]
+  );
+  return r.rows[0] ? priceListRow(r.rows[0]) : null;
+}
+
+// Names and the one-off/per-day split, so the admin panel does not have to
+// repeat them and cannot disagree with the server.
+app.get('/pricing/meta', requireAuth, async (req, res) => {
+  res.json({
+    kinds: PRICE_KINDS,
+    products: PRODUCT_KEYS.map(k => ({ key: k, label: PRODUCT_LABELS[k] })),
+    addons: ADDON_KEYS.map(k => ({ key: k, label: ADDON_LABELS[k], per: ADDON_PER[k] }))
+  });
+});
+
+// Every list, both kinds, newest first. Admin only: amounts of the franchise
+// list are purchase prices and must not reach a partner's browser.
+app.get('/pricing/lists', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT *, to_char(valid_from, 'YYYY-MM-DD') AS valid_from_text
+         FROM price_lists ORDER BY kind, valid_from DESC`);
+    const today = new Date().toISOString().slice(0, 10);
+    const inForce = {};
+    for (const row of r.rows) {
+      const d = priceListRow(row);
+      if (d.valid_from <= today && !inForce[d.kind]) inForce[d.kind] = d.id;
+    }
+    res.json({ lists: r.rows.map(priceListRow), in_force: inForce, today });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/pricing/lists', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const d = parsePriceList(req.body);
+    const r = await db.query(
+      `INSERT INTO price_lists (kind, name, valid_from, products, addons)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *, to_char(valid_from, 'YYYY-MM-DD') AS valid_from_text`,
+      [d.kind, d.name, d.valid_from, JSON.stringify(d.products), JSON.stringify(d.addons)]
+    );
+    res.json(priceListRow(r.rows[0]));
+  } catch (e) {
+    if (String(e.code) === '23505') {
+      return res.status(409).json({ error: 'Für diese Art gibt es bereits eine Preisliste ab diesem Datum' });
+    }
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.put('/pricing/lists/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const d = parsePriceList(req.body);
+    const r = await db.query(
+      `UPDATE price_lists
+          SET kind = $1, name = $2, valid_from = $3, products = $4,
+              addons = $5, updated_at = NOW()
+        WHERE id = $6
+    RETURNING *, to_char(valid_from, 'YYYY-MM-DD') AS valid_from_text`,
+      [d.kind, d.name, d.valid_from, JSON.stringify(d.products),
+       JSON.stringify(d.addons), req.params.id]
+    );
+    if (!r.rows[0]) return res.status(404).json({ error: 'not_found' });
+    res.json(priceListRow(r.rows[0]));
+  } catch (e) {
+    if (String(e.code) === '23505') {
+      return res.status(409).json({ error: 'Für diese Art gibt es bereits eine Preisliste ab diesem Datum' });
+    }
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// A kind must never be left without a list, and the list the calculator is
+// using right now is not something to delete by accident.
+app.delete('/pricing/lists/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const one = await db.query(
+      `SELECT *, to_char(valid_from, 'YYYY-MM-DD') AS valid_from_text
+         FROM price_lists WHERE id = $1`, [req.params.id]);
+    if (!one.rows[0]) return res.status(404).json({ error: 'not_found' });
+    const row = priceListRow(one.rows[0]);
+
+    const active = await activePriceList(row.kind);
+    if (active && active.id === row.id) {
+      return res.status(409).json({
+        error: 'Diese Preisliste gilt aktuell und kann nicht gelöscht werden'
+      });
+    }
+    const cnt = await db.query(
+      'SELECT COUNT(*)::int AS n FROM price_lists WHERE kind = $1', [row.kind]);
+    if (cnt.rows[0].n <= 1) {
+      return res.status(409).json({ error: 'Die letzte Preisliste dieser Art kann nicht gelöscht werden' });
+    }
+    await db.query('DELETE FROM price_lists WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// What the calculators will read in step 8.3.
+app.get('/pricing/active', requireAuth, async (req, res) => {
+  try {
+    const kind = PRICE_KINDS.includes(String(req.query.kind))
+      ? String(req.query.kind)
+      : (req.user && req.user.role === 'franchise' ? 'franchise' : 'standard');
+    // A franchise account has no business reading the standard list, and a
+    // consultant none reading purchase prices.
+    if (req.user && req.user.role === 'franchise' && kind !== 'franchise') {
+      return res.status(403).json({ error: 'forbidden_for_role' });
+    }
+    if (req.user && req.user.role === 'user' && kind !== 'standard') {
+      return res.status(403).json({ error: 'forbidden_for_role' });
+    }
+    const list = await activePriceList(kind, req.query.on);
+    if (!list) return res.status(404).json({ error: 'no_price_list' });
+    res.json({
+      ...list,
+      labels: { products: PRODUCT_LABELS, addons: ADDON_LABELS },
+      addon_per: ADDON_PER
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
 // FRANCHISE PRICING (price list of 28.10.2026)
 // ============================================================
 // Since 28.10.2026 the franchise partner buys at the same price the central
