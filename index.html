@@ -6102,49 +6102,161 @@ function frPdfEsc(t){
   return String(t == null ? '' : t)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function frPdfHead(){
-  return '<div class="fr-pdf-head">'
-    + '<div class="logo"><img src="pflegeplus-logo.png" alt="Betreuung 24"></div>'
-    + '<div class="meta">info@betreuung24.de<br>www.betreuung24.de</div>'
+/* Naglowek i stopka sa te same na wszystkich czterech stronach oferty -
+   jedno miejsce, zeby strony nie rozjechaly sie przy nastepnej zmianie. */
+function v9PageHead(){
+  return '<div class="v9-head">'
+    + '<img class="v9-logo" src="offer-logo-b24.png" alt="Betreuung 24">'
+    + '<div class="v9-head-contact">'
+    +   '<a href="mailto:info@betreuung24.de">info@betreuung24.de</a>'
+    +   '<a href="https://www.betreuung24.de">www.betreuung24.de</a>'
+    + '</div>'
     + '</div>';
 }
-function frPdfFoot(nr, ile){
-  return '<div class="fr-pdf-foot">'
-    + '<span>Betreuung 24 Sp. z o.o. &nbsp;|&nbsp; Al. Jerozolimskie 93, 02-001 Warschau, Polen</span>'
-    + '<span>' + nr + ' / ' + ile + '</span>'
+/* Stopka: wylacznie dane centrali. Dane franczyzobiorcy nie maja tu zadnej
+   reprezentacji, wiec nie moga trafic do pliku klienta. */
+function v9PageFoot(nr, ile, tytul, kto, datTxt){
+  return '<div class="v9-foot">'
+    + '<div><span>Betreuung 24 Sp. z o.o. &nbsp;|&nbsp; Al. Jerozolimskie 93, '
+    +   '02-001 Warschau, Polen</span>'
+    +   '<span class="v9-folio-title">'
+    +     (kto ? frPdfEsc(kto) + ' \u00b7 ' : '') + (datTxt ? frPdfEsc(datTxt) + ' \u00b7 ' : '')
+    +     frPdfEsc(tytul) + '</span></div>'
+    + '<span class="v9-folio">' + nr + ' <i>/ ' + ile + '</i></span>'
+    + '</div>';
+}
+/* Rama strony opisowej (2-4): naglowek, tytul w dwoch stopniach, tresc,
+   stopka. Strona 1 ma wlasna rame, bo zawiera adresata i tabele cenowe. */
+function v9Strona(nr, ile, klasa, tytul, podtytul, intro, tresc, stopka, kto, datTxt){
+  return '<div class="fr-pdf-page fr-pdf-page--v9 v9-doc' + (klasa ? ' ' + klasa : '') + '">'
+    + v9PageHead()
+    + '<div class="v9-main">'
+    +   '<h1 class="v9-page-title">' + frPdfEsc(tytul)
+    +     '<span>' + frPdfEsc(podtytul) + '</span></h1>'
+    +   (intro || '')
+    +   tresc
+    + '</div>'
+    + v9PageFoot(nr, ile, stopka, kto, datTxt)
     + '</div>';
 }
 
-/* Strony opisowe przepisane z zakladki Angebot, zeby tresc byla w jednym
-   miejscu: zmiana opisu tam zmienia go i w ofercie franczyzowej. */
-function frPdfOpisy(selKarta, selTytul, selTresc, wybrany){
+/* Strony opisowe biora tresc z zakladki Angebot, zeby opis byl w jednym
+   miejscu: zmiana tam zmienia go i w ofercie franczyzowej. */
+
+/* --- strona 2: pakiety jezykowe --- */
+function v9Sprachpakete(wybrany){
   var out = '';
-  document.querySelectorAll(selKarta).forEach(function(card){
-    var t = card.querySelector(selTytul);
-    var b = card.querySelector(selTresc);
+  document.querySelectorAll('#tab-angebot .products-section .products-list .product-card')
+    .forEach(function(card){
+      var t = card.querySelector('.product-title');
+      var b = card.querySelector('.product-text');
+      if(!t) return;
+      var pelna = t.textContent.replace(/\s+/g,' ').trim();
+      /* Dopasowanie po nazwie produktu: tytul karty brzmi dokladnie tak samo
+         jak etykieta pakietu w cenniku, wiec nie powstaje drugie zrodlo. */
+      var sel = !!wybrany && pelna === String(wybrany).replace(/\s+/g,' ').trim();
+      /* "Seniorenbetreuung Silber" -> nadtytul + nazwa pakietu, jak we wzorcu. */
+      var ix  = pelna.lastIndexOf(' ');
+      var nad = ix > 0 ? pelna.slice(0, ix) : '';
+      var naz = ix > 0 ? pelna.slice(ix + 1) : pelna;
+      var txt = b ? b.textContent.replace(/\s+/g,' ').trim() : '';
+      /* Liczba slow stoi juz w opisie - wyciagamy ja z nawiasu zamiast
+         wpisywac drugi raz obok. */
+      var m = txt.match(/\((?:ca\.|\u00fcber)[^)]*W\u00f6rter\)/);
+      out += '<section class="v9-language' + (sel ? ' v9-language--sel' : '') + '">'
+        + '<div class="v9-lang-label">'
+        +   (nad ? '<span>' + frPdfEsc(nad) + '</span>' : '')
+        +   '<h2>' + frPdfEsc(naz) + '</h2>'
+        +   (m ? '<span class="v9-words">' + frPdfEsc(m[0].slice(1, -1)) + '</span>' : '')
+        +   (sel ? '<span class="v9-sel-label">Ihr gew\u00e4hltes Paket</span>' : '')
+        + '</div>'
+        + '<p>' + frPdfEsc(txt) + '</p>'
+        + '</section>';
+    });
+  return '<div class="v9-languages">' + out + '</div>';
+}
+
+/* --- strona 3: zakres uslugi --- */
+function v9Leistungen(){
+  var out = '', nota = '';
+  document.querySelectorAll('#tab-angebot .services-section .service-card')
+    .forEach(function(card){
+      var t = card.querySelector('.service-card-title');
+      if(!t) return;
+      var li = '';
+      card.querySelectorAll('.services-list li').forEach(function(el){
+        var tekst = el.textContent.replace(/\s+/g,' ').trim();
+        /* Zdanie o indywidualnym ustaleniu zakresu jest we wzorcu v9 osobna
+           nota pod lista, nie punktem listy. */
+        if(/^Der genaue Umfang/.test(tekst)){ nota = tekst; return; }
+        li += '<li>' + frPdfEsc(tekst) + '</li>';
+      });
+      out += '<section class="v9-service"><h2>' + frPdfEsc(t.textContent.trim()) + '</h2>'
+           + '<ul>' + li + '</ul></section>';
+    });
+  return '<div class="v9-services">' + out + '</div>'
+    + (nota
+       ? '<div class="v9-scope"><strong>Auf Ihren Alltag<br>abgestimmt.</strong>'
+         + '<p>' + frPdfEsc(nota) + '</p></div>'
+       : '');
+}
+
+/* --- strona 4: opisy dodatkow --- */
+function v9Zusatz(){
+  var karty = document.querySelectorAll('#tab-angebot .addons-desc-section .products-list .product-card');
+  /* Opisy dodatkow i klucze cennika sa w tym samym pliku i w tej samej
+     kolejnosci. Gdyby kiedys przestaly zgadzac sie dlugoscia, zadny dodatek
+     nie zostanie wyrozniony - zamiast wyroznic niewlasciwy. */
+  var zgodne = karty.length === FR_ADDON_ORDER.length;
+  var out = '', ileSel = 0;
+  karty.forEach(function(card, i){
+    var t = card.querySelector('.product-title');
+    var b = card.querySelector('.product-text');
     if(!t) return;
-    /* Wzorzec v9 wyroznia pakiet jezykowy, ktory oferta przedstawia.
-       Dopasowanie po nazwie produktu: tytul karty w zakladce Angebot brzmi
-       dokladnie tak samo jak etykieta pakietu w cenniku. */
-    var jestWybrany = !!wybrany &&
-      t.textContent.replace(/\s+/g,' ').trim() === String(wybrany).replace(/\s+/g,' ').trim();
-    /* Kopia bez klas: inaczej style z zakladki Angebot (np. wlasne punktory
-       .services-list li) nakladaja sie na uklad dokumentu i punktory
-       pojawiaja sie podwojnie. */
-    var tresc = '';
+    var sel = zgodne && frChecked('fr-addon-' + FR_ADDON_ORDER[i]);
+    if(sel) ileSel++;
+    var akapity = [];
     if(b){
-      var kopia = b.cloneNode(true);
-      kopia.removeAttribute('class');
-      kopia.querySelectorAll('[class]').forEach(function(el){ el.removeAttribute('class'); });
-      kopia.querySelectorAll('[style]').forEach(function(el){ el.removeAttribute('style'); });
-      tresc = (kopia.tagName === 'UL') ? kopia.outerHTML : kopia.innerHTML;
+      var lis = b.querySelectorAll('li');
+      if(lis.length){
+        lis.forEach(function(el){ akapity.push(el.textContent.replace(/\s+/g,' ').trim()); });
+      } else {
+        akapity.push(b.textContent.replace(/\s+/g,' ').trim());
+      }
     }
-    out += '<div class="fr-pdf-item' + (jestWybrany ? ' fr-pdf-item--sel' : '') + '">'
-         + '<div class="t">' + frPdfEsc(t.textContent.trim()) + '</div>'
-         + (jestWybrany ? '<div class="sel-label">Ihr gewähltes Paket</div>' : '')
-         + '<div class="b">' + tresc + '</div></div>';
+    out += '<section class="v9-option' + (sel ? ' v9-option--sel' : '') + '">'
+      + '<div class="v9-option-top"><h2>' + frPdfEsc(t.textContent.trim()) + '</h2>'
+      + (sel ? '<span class="v9-option-label">F\u00fcr Ihr Angebot ausgew\u00e4hlt</span>' : '')
+      + '</div>'
+      + akapity.map(function(x){ return '<p>' + frPdfEsc(x) + '</p>'; }).join('')
+      + '</section>';
   });
-  return out;
+  return { html: '<div class="v9-options">' + out + '</div>', sel: ileSel };
+}
+
+/* Blok kontaktowy i opinie zamykaja ostatnia strone. Numer jest klikalnym
+   linkiem tel: - dlatego oferte sklada Chromium, a nie zdjecie strony. */
+function v9Kontakt(){
+  return '<section class="v9-contact">'
+    + '<div><h2>Wir sind f\u00fcr Sie da.</h2>'
+    +   '<p>Lassen Sie uns Ihr Angebot<br>gemeinsam durchgehen.</p></div>'
+    + '<div><span>Ihr Kontakt zu Betreuung24</span>'
+    +   '<a class="v9-contact-phone" href="tel:08007235723">0800 723 5 723</a>'
+    +   '<a href="mailto:info@betreuung24.de">info@betreuung24.de</a>'
+    +   '<a href="https://www.betreuung24.de">www.betreuung24.de</a></div>'
+    + '</section>';
+}
+function v9Trust(){
+  return '<aside class="v9-trust">'
+    + '<div class="v9-trust-intro"><strong>Erfahrungen mit Betreuung24</strong>'
+    +   '<span>Lesen Sie, was Kunden berichten.</span></div>'
+    + '<a class="v9-trust-brand" href="https://www.provenexpert.com/de-de/betreuung24/">'
+    +   '<img src="offer-provenexpert.svg" alt="ProvenExpert">'
+    +   '<span>Bewertungen ansehen</span></a>'
+    + '<a class="v9-trust-brand" href="https://de.trustpilot.com/review/betreuung24.de">'
+    +   '<img src="offer-trustpilot.svg" alt="Trustpilot">'
+    +   '<span>Bewertungen ansehen</span></a>'
+    + '</aside>';
 }
 
 /* Strona 1 musi zmiescic sie na kartce A4 takze w wariancie maksymalnym:
@@ -6167,7 +6279,7 @@ function frFitPage1(doc){
   page.style.height = '1123px';
   page.style.overflow = 'hidden';
 
-  var base = 'fr-pdf-page fr-pdf-page--offer';
+  var base = 'fr-pdf-page fr-pdf-page--v9 fr-pdf-page--offer';
   var kroki = ['', 'v9-tight', 'v9-tighter', 'v9-tightest'];
   for(var i = 0; i < kroki.length; i++){
     page.className = base + (kroki[i] ? ' ' + kroki[i] : '');
@@ -6187,6 +6299,7 @@ function frBuildPdfDoc(){
   var nach = String(frVal('fr-nachname')).trim();
   var dat  = frVal('fr-datum');
   var kto  = (vor + ' ' + nach).trim();
+  var datTxt = dat ? frDateDE(dat) : '';
 
   /* --- dodatki: etykieta z pola wyboru, kwoty z juz policzonych kolumn --- */
   var dodatkiRows = '';
@@ -6263,16 +6376,10 @@ function frBuildPdfDoc(){
       + '<td>' + (monat || '') + '</td></tr>';
   }
 
-  var s1 = '<div class="fr-pdf-page fr-pdf-page--offer">'
+  var s1 = '<div class="fr-pdf-page fr-pdf-page--v9 fr-pdf-page--offer">'
 
-    /* --- naglowek strony --- */
-    + '<div class="v9-head">'
-    +   '<img class="v9-logo" src="offer-logo-b24.png" alt="Betreuung 24">'
-    +   '<div class="v9-head-contact">'
-    +     '<a href="mailto:info@betreuung24.de">info@betreuung24.de</a>'
-    +     '<a href="https://www.betreuung24.de">www.betreuung24.de</a>'
-    +   '</div>'
-    + '</div>'
+    /* --- naglowek strony: ten sam co na stronach 2-4 --- */
+    + v9PageHead()
 
     + '<div class="v9-main">'
 
@@ -6283,7 +6390,7 @@ function frBuildPdfDoc(){
             ? '<div class="v9-recipient">'
               + '<span>Persönlich erstellt für</span>'
               + (kto ? '<strong>' + frPdfEsc(kto) + '</strong>' : '')
-              + (dat ? '<small>' + frPdfEsc(frDateDE(dat)) + '</small>' : '')
+              + (datTxt ? '<small>' + frPdfEsc(datTxt) + '</small>' : '')
               + '</div>'
             : '')
     +   '</div>'
@@ -6389,34 +6496,38 @@ function frBuildPdfDoc(){
     + '</div>'
 
     /* --- stopka: wylacznie dane centrali --- */
-    + '<div class="v9-foot">'
-    +   '<div><span>Betreuung 24 Sp. z o.o. &nbsp;|&nbsp; Al. Jerozolimskie 93, '
-    +     '02-001 Warschau, Polen</span>'
-    +     '<span class="v9-folio-title">'
-    +       (kto ? frPdfEsc(kto) + ' · ' : '') + (dat ? frPdfEsc(frDateDE(dat)) + ' · ' : '')
-    +       'Kostenübersicht</span></div>'
-    +   '<span class="v9-folio">1 <i>/ ' + ile + '</i></span>'
-    + '</div>'
+    + v9PageFoot(1, ile, 'Kostenübersicht', kto, datTxt)
 
     + '</div>';
 
-  function strona(nr, tytul, tresc){
-    return '<div class="fr-pdf-page">' + frPdfHead()
-      + '<div class="fr-pdf-accent"></div>'
-      + '<div class="fr-pdf-h2">' + tytul + '</div>'
-      + tresc + frPdfFoot(nr, ile) + '</div>';
-  }
+  /* ---------- strony 2-4: uklad v9 ---------- */
+  var pelnaEtykieta = (FR_PRODUCTS[frPaket()] || {}).label || '';
+  var krotkaNazwa   = pelnaEtykieta.split(' ').pop();
 
-  var s2 = strona(2, 'Sprachpakete — Produktbeschreibung',
-    frPdfOpisy('#tab-angebot .products-section .products-list .product-card',
-               '.product-title', '.product-text',
-               (FR_PRODUCTS[frPaket()] || {}).label));
-  var s3 = strona(3, 'Allgemeine Produktbeschreibung',
-    frPdfOpisy('#tab-angebot .services-section .service-card',
-               '.service-card-title', '.services-list'));
-  var s4 = strona(4, 'Beschreibung der Zusatzleistungen',
-    frPdfOpisy('#tab-angebot .addons-desc-section .products-list .product-card',
-               '.product-title', '.product-text'));
+  var s2 = v9Strona(2, ile, 'v9-page-lang', 'Sprachpakete', 'Produktbeschreibung',
+    (krotkaNazwa
+      ? '<p class="v9-intro">F\u00fcr Ihr Angebot ist das Sprachpaket <strong>'
+        + frPdfEsc(krotkaNazwa) + '</strong> vorgesehen.<br>'
+        + 'Hier sehen Sie die Unterschiede im \u00dcberblick.</p>'
+      : ''),
+    v9Sprachpakete(pelnaEtykieta)
+      + (pelnaEtykieta
+         ? '<div class="v9-quiet"><p>Ihr gew\u00e4hltes Sprachpaket: <strong>'
+           + frPdfEsc(pelnaEtykieta) + '</strong><br>'
+           + 'Die Kosten finden Sie in Ihrer \u00dcbersicht auf Seite 1.</p></div>'
+         : ''),
+    'Sprachpakete', kto, datTxt);
+
+  var s3 = v9Strona(3, ile, 'v9-page-serv', 'Allgemeine', 'Produktbeschreibung',
+    '<p class="v9-intro v9-claim-line">Damit wieder mehr Zeit f\u00fcreinander bleibt.</p>',
+    v9Leistungen(), 'Leistungsumfang', kto, datTxt);
+
+  var dod = v9Zusatz();
+  var s4 = v9Strona(4, ile, 'v9-page-opt', 'Beschreibung der', 'Zusatzleistungen',
+    '<p class="v9-intro">' + (dod.sel
+      ? 'Diese Erg\u00e4nzungen sind in Ihrem Angebot enthalten.'
+      : '\u00dcbersicht der m\u00f6glichen Erg\u00e4nzungen zu Ihrer Betreuung.') + '</p>',
+    dod.html + v9Kontakt() + v9Trust(), 'Zusatzleistungen', kto, datTxt);
 
   doc.innerHTML = s1 + s2 + s3 + s4;
   frFitPage1(doc);
