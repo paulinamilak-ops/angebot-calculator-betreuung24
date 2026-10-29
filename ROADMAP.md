@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **29.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`__HASH__`** · wypchnięty na GitHub
+Ostatni commit **`2803a82`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ Ostatni commit **`__HASH__`** · wypchnięty na GitHub
 
 ## Sesja 29.10.2026
 
-### Commit `__HASH__` — Angebot dostaje ofertę w układzie v9 (krok 7.5)
+### Commit `2803a82` — Angebot dostaje ofertę w układzie v9 (krok 7.5)
 
 **Zgłoszenie PO:** „dalej jest problem z zakładką Angebot i generowanym PDF.
 Dodaj nowy przycisk, gdzie generowany będzie PDF w nowej wersji."
@@ -360,7 +360,7 @@ podpiąć gotowy szablon.
 | 7.2 | Silnik PDF na serwerze, styl wydzielony do pliku | ✅ `2147256` |
 | 7.3 | Strona 1 w układzie v9, na danych z kalkulatora | ✅ `724297c` |
 | 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | ✅ `49a954e` + `85d80b7` |
-| 7.5 | Angebot na wspólny szablon oferty | ✅ `__HASH__` |
+| 7.5 | Angebot na wspólny szablon oferty | ✅ `2803a82` |
 | 7.6 | Odtworzenie obu przykładów i porównanie ze wzorcami | ⬜ **następne** |
 
 ### Stałe wizualne v9
