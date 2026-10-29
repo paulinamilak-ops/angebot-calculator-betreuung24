@@ -440,7 +440,7 @@ Trzy moduły: Angebot, Kreator CV, franczyzowy generator ofert.
 
 | Gdzie | Adres | Stan |
 | --- | --- | --- |
-| Railway (test) | `angebot-calculator-betreuung24-production.up.railway.app` | commit `21ed63f` |
+| Railway (test) | `angebot-calculator-betreuung24-production.up.railway.app` | ✅ commit `61a1616`, sprawdzone 29.10 |
 | Railway (baza) | usługa `Postgres` w projekcie `believable-upliftment` | ✅ |
 | Lokalnie | `http://localhost:3001` | `docker compose up` |
 | Produkcja | `calculator.betreuung24.de` | **nietknięta**, `main`, SQLite |
