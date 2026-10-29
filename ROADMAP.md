@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **28.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`49a954e`** · wypchnięty na GitHub
+Ostatni commit **`d7ca26f`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -16,6 +16,27 @@ Ostatni commit **`49a954e`** · wypchnięty na GitHub
 ---
 
 ## Sesja 28.10.2026
+
+### Commit `d7ca26f` — wydruk Angebot przestał być formularzem
+
+**Zgłoszenie PO:** „w wersji Angebot PDF jest cały czas błędny".
+
+Odtworzony u siebie wydruk zakładki Angebot (Chromium, media `print`,
+te same kroki co przycisk drukowania). Znalezione trzy rzeczy:
+
+- [x] **Naprawione:** produkt i Pflegegrad drukowały się jako **rozwijane
+      listy** z ramką i strzałką, a dodatki z **zaznaczonymi polami
+      wyboru**. Klient dostawał zrzut panelu obsługi, nie ofertę. Teraz
+      listy drukują się jako sam tekst, a pola wyboru znikają. Informacji
+      nie ubywa: niezaznaczone dodatki i tak są chowane przed drukiem,
+      więc każdy wydrukowany wiersz to pozycja wliczona w ofertę.
+      Reguła zawężona do `#tab-angebot.print-active`.
+- [ ] **Do zrobienia w 7.5:** nagłówek „Persönlicher Anteil nach allen
+      Abzügen" jest w Angebot wpisany na stałe i pokazuje się nawet przy
+      zerowych odliczeniach, gdy kwota równa się „Summe vor Abzügen".
+      We Franchise przełącza się wtedy na „Gesamt".
+- [ ] **Do zrobienia w 7.5:** Angebot nie ma pól klienta. Decyzja PO
+      z 29.10: **dokładamy je, tak jak we Franchise.**
 
 ### Commit `49a954e` — wybrany pakiet językowy wyróżniony na stronie 2
 
@@ -196,13 +217,36 @@ z 21.10.2026) leży w folderze „CV oferty", **poza repozytorium**.
 
 ### Podział na kawałki
 
+### Dlaczego Angebot wygląda inaczej — i jak to domykamy
+
+Oba moduły robią PDF **zupełnie inaczej**:
+
+| Moduł | Mechanizm |
+| --- | --- |
+| Franchise | składa osobny dokument w tle (`#fr-pdf-doc`) i wysyła do Chromium na serwerze (`POST /pdf/render`) — stąd przycisk „PDF speichern", zaznaczalny tekst i układ v9 |
+| Angebot | drukuje **żywy panel** przez okno drukowania przeglądarki — na kartkę trafia to, co jest na ekranie, razem z kontrolkami |
+
+Wyglądu v9 nie da się dokleić do drugiego mechanizmu. **Decyzja PO
+z 29.10: Angebot przechodzi na ten sam mechanizm co Franchise.**
+
+**Wspólny szablon.** Układ strony 1 wychodzi z modułu franczyzowego do
+osobnej funkcji, która dostaje gotowe liczby i nie wie, z której zakładki
+pochodzą. Franchise i Angebot tylko ją karmią. Inaczej powstają dwie kopie
+tego samego układu i po pół roku różnią się w szczegółach, których nikt
+nie pilnuje.
+
+**Kolejność: 7.4 przed 7.5.** Strony 2–4 są dziś w starym układzie w obu
+modułach. Gdyby najpierw zrobić Angebot, powstałyby dwa moduły z nową
+stroną 1 i starymi stronami 2–4. Po domknięciu 7.4 przy Angebot wystarczy
+podpiąć gotowy szablon.
+
 | Kawałek | Zakres | Stan |
 | --- | --- | --- |
 | 7.1 | Decyzje: mechanizm PDF i zakres modułów | ✅ B + oba moduły |
 | 7.2 | Silnik PDF na serwerze, styl wydzielony do pliku | ✅ `2147256` |
 | 7.3 | Strona 1 w układzie v9, na danych z kalkulatora | ✅ `724297c` |
-| 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | 🔄 podświetlenie pakietu zrobione (`49a954e`); zostaje układ v9 stron 2–4 i blok kontaktowy |
-| 7.5 | To samo w zakładce Angebot | ⬜ |
+| 7.4 | Strony 2–4: opisy, podświetlenia, blok kontaktowy | 🔄 podświetlenie pakietu zrobione (`49a954e`); zostaje układ v9 stron 2–4 i blok kontaktowy — **następne** |
+| 7.5 | Angebot na wspólny szablon oferty | ⬜ po 7.4 |
 | 7.6 | Odtworzenie obu przykładów i porównanie ze wzorcami | ⬜ |
 
 ### Stałe wizualne v9
@@ -265,6 +309,10 @@ do PO do zatwierdzenia w kroku 7.6.
 | Podkreślenie pod „Abzüge" | ✅ 28.10 — **zostaje** |
 | Kolory oferty | ✅ 28.10 — **kolory aplikacji** `#0d1b3e` / `#f7a800` |
 | Cennik od 28.10.2026 | ✅ 28.10 — **jeden dla obu modułów**, marża centrali 0 € |
+| Mechanizm PDF w Angebot | ✅ 29.10 — **ten sam co Franchise**, wspólny szablon |
+| Kolejność kroków | ✅ 29.10 — **7.4 przed 7.5** |
+| Adresat na ofercie Angebot | ✅ 29.10 — **pola klienta, tak jak we Franchise** (wzorzec ich nie ma, PO chce) |
+| Stare drukowanie w Angebot | ✅ 29.10 — **nowy przycisk je zastępuje**, nie zostaje jako zapas |
 | Rabat kwotowy | Brak — tylko prowizja |
 | Widełki prowizji | Brak limitów |
 | Dwóch pacjentów | Tak, wyłącznie przez dodatek 15 €/dzień |
@@ -366,6 +414,12 @@ Trzy moduły: Angebot, Kreator CV, franczyzowy generator ofert.
   (`pip install pymupdf --break-system-packages`).
 - **Kontrola cennika:** `cennik.cjs` — otwiera `index.html` w Playwrighcie,
   przechodzi cztery pakiety przy prowizji 0 € i 600 €, porównuje z cennikiem.
+- **Wydruk zakładki Angebot do podejrzenia:** Playwright otwiera
+  `index.html`, usuwa `#login-overlay`, ustawia pola, woła `recalc()`,
+  potem `print-active` + `beforePrint()` i `page.pdf()`. Uwaga: w zwykłej
+  przeglądarce `beforePrint()` liczy wysokość, gdy zakładka jest jeszcze
+  ukryta (`offsetHeight === 0`), więc jego automatyczne skalowanie nigdy
+  się nie włącza — to martwy kod, znika razem z krokiem 7.5.
 - **Test renderu bez bazy i bez logowania:** `harness.cjs` — mały serwer
   statyczny na plikach repozytorium, Playwright otwiera `index.html`,
   ustawia pola `fr-*`, woła `frRecalc()` i `frBuildPdfDoc()`, oddaje
