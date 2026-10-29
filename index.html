@@ -1405,7 +1405,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="row-addon-fuehrerschein">
               <div class="checkbox-label">
                 <input type="checkbox" id="addon-fuehrerschein" class="checkbox">
-                Führerschein (+ 8 € pro Tag)
+                Führerschein (<span id="addon-fuehrerschein-cap">+ 8 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="addon-fuehrerschein-day"></span>
@@ -1415,7 +1415,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="row-addon-zweitepersonhh">
               <div class="checkbox-label">
                 <input type="checkbox" id="addon-zweitepersonhh" class="checkbox">
-                Zweite Person im Haushalt (+ 4 € pro Tag)
+                Zweite Person im Haushalt (<span id="addon-zweitepersonhh-cap">+ 4 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="addon-zweitepersonhh-day"></span>
@@ -1425,7 +1425,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="row-addon-zweitepersonzb">
               <div class="checkbox-label">
                 <input type="checkbox" id="addon-zweitepersonzb" class="checkbox">
-                Zweite zu betreuende Person (+ 15 € pro Tag)
+                Zweite zu betreuende Person (<span id="addon-zweitepersonzb-cap">+ 15 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="addon-zweitepersonzb-day"></span>
@@ -1435,7 +1435,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="row-addon-sonderbetreuung">
               <div class="checkbox-label">
                 <input type="checkbox" id="addon-sonderbetreuung" class="checkbox">
-                Sonderbetreuung (+ 10 € pro Tag)
+                Sonderbetreuung (<span id="addon-sonderbetreuung-cap">+ 10 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="addon-sonderbetreuung-day"></span>
@@ -1973,7 +1973,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="fr-row-addon-fuehrerschein">
               <div class="checkbox-label">
                 <input type="checkbox" id="fr-addon-fuehrerschein" class="checkbox">
-                Führerschein (+ 8 € pro Tag)
+                Führerschein (<span id="fr-addon-fuehrerschein-cap">+ 8 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="fr-addon-fuehrerschein-day"></span>
@@ -1983,7 +1983,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="fr-row-addon-zweitepersonhh">
               <div class="checkbox-label">
                 <input type="checkbox" id="fr-addon-zweitepersonhh" class="checkbox">
-                Zweite Person im Haushalt (+ 4 € pro Tag)
+                Zweite Person im Haushalt (<span id="fr-addon-zweitepersonhh-cap">+ 4 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="fr-addon-zweitepersonhh-day"></span>
@@ -1993,7 +1993,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="fr-row-addon-zweitepersonzb">
               <div class="checkbox-label">
                 <input type="checkbox" id="fr-addon-zweitepersonzb" class="checkbox">
-                Zweite zu betreuende Person (+ 15 € pro Tag)
+                Zweite zu betreuende Person (<span id="fr-addon-zweitepersonzb-cap">+ 15 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="fr-addon-zweitepersonzb-day"></span>
@@ -2003,7 +2003,7 @@ input.fr-error{ border-color:#ef4444 !important; background:#fef2f2; }
             <div class="checkbox-row" id="fr-row-addon-sonderbetreuung">
               <div class="checkbox-label">
                 <input type="checkbox" id="fr-addon-sonderbetreuung" class="checkbox">
-                Sonderbetreuung (+ 10 € pro Tag)
+                Sonderbetreuung (<span id="fr-addon-sonderbetreuung-cap">+ 10 € pro Tag</span>)
               </div>
               <div class="price-grid">
                 <span class="price-day" id="fr-addon-sonderbetreuung-day"></span>
@@ -3384,6 +3384,49 @@ const addonDefs=[
   {id:"sonderbetreuung",amount:10,per:"tag"}
 ];
 const sumAddons=["fuehrerschein","zweitepersonhh","zweitepersonzb","sonderbetreuung"];
+
+/* Cennik zakladki Angebot pochodzi z panelu administratora (zwykly cennik).
+   Kwoty powyzej zostaja jako kopia awaryjna: gdyby serwer nie odpowiedzial,
+   kalkulator liczy po ostatnich znanych cenach zamiast pokazywac zera.
+   Opisy pakietow i dodatkow nie przychodza z cennika - w cenniku sa same
+   kwoty, a nazwa z literowka trafilaby prosto na oferte dla klienta. */
+var _angPricingReady = false;
+async function angLoadPricing(){
+  if(_angPricingReady) return;
+  try{
+    var r = await cvFetch('/pricing/active?kind=standard');
+    if(!r.ok) return;
+    var d = await r.json();
+    if(d && d.products){
+      Object.keys(d.products).forEach(function(k){
+        if(!products[k]) return;
+        products[k].monat = Number(d.products[k].monat);
+        products[k].tag   = Number(d.products[k].tag);
+      });
+    }
+    if(d && d.addons){
+      addonDefs.forEach(function(a){
+        if(d.addons[a.id]) a.amount = Number(d.addons[a.id].amount);
+      });
+    }
+    _angPricingReady = true;
+    angUpdateAddonCaps();
+    recalc();
+  } catch(e){ /* kopia awaryjna z kodu zostaje */ }
+}
+
+/* Etykiety przy polach wyboru niosa kwote dodatku ("+ 8 € pro Tag").
+   Po zmianie cennika musza isc za nim - inaczej klient widzi na ofercie
+   jedna kwote, a w etykiecie druga. */
+function angUpdateAddonCaps(){
+  addonDefs.forEach(function(a){
+    if(a.per !== 'tag') return;
+    ['addon-' + a.id + '-cap', 'fr-addon-' + a.id + '-cap'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.textContent = '+ ' + a.amount + ' € pro Tag';
+    });
+  });
+}
 const addonIds=["express","fuehrerschein","zweitepersonhh","zweitepersonzb","sonderbetreuung"];
 const euro=x=>x.toLocaleString("de-DE",{minimumFractionDigits:0,maximumFractionDigits:0})+" €";
 const setText=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt;};
@@ -5600,6 +5643,10 @@ function authSetUser(user, token){
 
   // Tabs visible to this role, and the starting tab.
   if(typeof frApplyRole === 'function') frApplyRole(user.role);
+
+  /* Cennik zakladki Angebot sciagamy po zalogowaniu - franczyzobiorca jej
+     nie widzi i nie ma prawa do zwyklego cennika, wiec go nie pytamy. */
+  if(user.role !== 'franchise' && typeof angLoadPricing === 'function') angLoadPricing();
 }
 
 async function authLogin(){
@@ -5957,6 +6004,10 @@ async function adminSavePriceList(){
     adminPriceMsg('✓ Cennik zapisany.', true);
     document.getElementById('admin-price-form').scrollTop = 0;
     adminLoadPriceLists();
+    /* Kalkulatory maja za soba cennik sprzed zapisu - ciagniemy go od nowa,
+       zeby administrator nie musial przeladowywac strony. */
+    if(typeof angLoadPricing === 'function'){ _angPricingReady = false; angLoadPricing(); }
+    if(typeof frLoadPricing  === 'function'){ _frPricingReady  = false; frLoadPricing(); }
   } catch(e){
     adminPriceMsg('Speichern fehlgeschlagen.');
   } finally {
@@ -7282,6 +7333,12 @@ async function frLoadPricing(){
     }
     if(d && d.days_in_month) FR_DAYS = d.days_in_month;
     _frPricingReady = true;
+    /* Etykiety "+ 8 € pro Tag" przy dodatkach musza isc za cennikiem. */
+    FR_ADDON_ORDER.forEach(function(k){
+      if(!FR_ADDONS[k] || FR_ADDONS[k].per !== 'day') return;
+      var el = document.getElementById('fr-addon-' + k + '-cap');
+      if(el) el.textContent = '+ ' + FR_ADDONS[k].amount + ' € pro Tag';
+    });
     frRecalc();
   } catch(e){ /* keep the built-in copy */ }
 }

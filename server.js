@@ -1064,7 +1064,42 @@ const FRANCHISE_DAYS = 30;
  * numbers that do not follow the price list. The commission is never
  * applied to add-ons.
  */
-function franchiseCalc({ paket, provision_monat, persons, addons }) {
+/* Cennik, z ktorego licza sie oferty franczyzowe. Zrodlem jest tabela
+   price_lists (krok 8.3); kwoty w kodzie zostaja jako kopia awaryjna na
+   wypadek, gdyby w bazie nie bylo jeszcze zadnego cennika - lepiej policzyc
+   po ostatnich znanych cenach niz oddac uzytkownikowi blad. */
+async function franchisePricing() {
+  let list = null;
+  try { list = await activePriceList('franchise'); }
+  catch (e) { console.error('Price list unavailable, using built-in copy:', e.message); }
+
+  if (!list) {
+    return {
+      products: FRANCHISE_PRODUCTS,
+      addons: FRANCHISE_ADDONS,
+      source: 'built-in'
+    };
+  }
+  const products = {};
+  for (const k of PRODUCT_KEYS) {
+    products[k] = {
+      monat: Number(list.products[k].monat),
+      tag:   Number(list.products[k].tag),
+      label: PRODUCT_LABELS[k]
+    };
+  }
+  const addons = {};
+  for (const k of ADDON_KEYS) {
+    addons[k] = { amount: Number(list.addons[k].amount), per: ADDON_PER[k] };
+  }
+  return { products, addons, source: 'db', list_id: list.id,
+           list_name: list.name, valid_from: list.valid_from };
+}
+
+async function franchiseCalc({ paket, provision_monat, persons, addons }) {
+  const pricing = await franchisePricing();
+  const FRANCHISE_PRODUCTS = pricing.products;
+  const FRANCHISE_ADDONS   = pricing.addons;
   const product = FRANCHISE_PRODUCTS[paket];
   if (!product) throw new Error('Unknown paket: ' + paket);
 
@@ -1100,7 +1135,7 @@ function franchiseCalc({ paket, provision_monat, persons, addons }) {
 }
 
 /** Validate and normalise the request body for an offer. */
-function franchiseBody(b) {
+async function franchiseBody(b) {
   const first = (b.client_first_name || '').trim();
   const last  = (b.client_last_name  || '').trim();
   const date  = (b.offer_date || '').trim();
@@ -1122,7 +1157,7 @@ function franchiseBody(b) {
 
   let calc;
   try {
-    calc = franchiseCalc({ paket: b.paket, provision_monat: b.provision_monat,
+    calc = await franchiseCalc({ paket: b.paket, provision_monat: b.provision_monat,
                            persons, addons: b.addons });
   } catch (err) { err.status = 400; throw err; }
 
@@ -1153,11 +1188,14 @@ function franchiseBody(b) {
 // The price list the calculator renders. Kept server-side so the browser
 // and the stored offers can never disagree about it.
 app.get('/franchise/pricing', requireAuth, requireFranchise, async (req, res) => {
+  const pricing = await franchisePricing();
   res.json({
-    products: Object.fromEntries(Object.entries(FRANCHISE_PRODUCTS).map(([k, v]) =>
+    products: Object.fromEntries(Object.entries(pricing.products).map(([k, v]) =>
       [k, { monat: v.monat, tag: v.tag, label: v.label, divisor: v.monat / v.tag }])),
-    addons: FRANCHISE_ADDONS,
-    days_in_month: FRANCHISE_DAYS
+    addons: pricing.addons,
+    days_in_month: FRANCHISE_DAYS,
+    price_list: { source: pricing.source, name: pricing.list_name || null,
+                  valid_from: pricing.valid_from || null }
   });
 });
 
@@ -1165,8 +1203,8 @@ app.get('/franchise/pricing', requireAuth, requireFranchise, async (req, res) =>
 app.post('/franchise/calc', requireAuth, requireFranchise, async (req, res) => {
   try {
     const b = req.body || {};
-    res.json(franchiseCalc({ paket: b.paket, provision_monat: b.provision_monat,
-                             persons: b.persons, addons: b.addons }));
+    res.json(await franchiseCalc({ paket: b.paket, provision_monat: b.provision_monat,
+                                   persons: b.persons, addons: b.addons }));
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -1205,7 +1243,7 @@ app.get('/franchise/offers/:id', requireAuth, requireFranchise, async (req, res)
 
 app.post('/franchise/offers', requireAuth, requireFranchise, async (req, res) => {
   try {
-    const row = franchiseBody(req.body || {});
+    const row = await franchiseBody(req.body || {});
     const created = await stmt.offInsert.get({ ...row, user_id: req.user.id });
     secLog('FRANCHISE_OFFER_CREATED', req.user.email, req.ip,
            `ID: ${created.id} client: ${row.client_last_name}`);
@@ -1215,7 +1253,7 @@ app.post('/franchise/offers', requireAuth, requireFranchise, async (req, res) =>
 
 app.put('/franchise/offers/:id', requireAuth, requireFranchise, async (req, res) => {
   try {
-    const row = franchiseBody(req.body || {});
+    const row = await franchiseBody(req.body || {});
     const updated = await stmt.offUpdate.get({ ...row, id: req.params.id,
                                                user_id: req.user.id });
     if (!updated) return res.status(404).json({ error: 'Not found' });
