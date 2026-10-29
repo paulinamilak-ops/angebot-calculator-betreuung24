@@ -366,6 +366,9 @@ do PO do zatwierdzenia w kroku 7.6.
 | Cennik od 28.10.2026 | ✅ 28.10 — **jeden dla obu modułów**, marża centrali 0 € |
 | Mechanizm PDF w Angebot | ✅ 29.10 — **ten sam co Franchise**, wspólny szablon |
 | Kolejność kroków | ✅ 29.10 — **7.4 przed 7.5** |
+| Oznaczanie wybranych dodatków na stronie 4 | ✅ 29.10 — **zostaje** |
+| Logotypy opinii na stronie 4 | ✅ 29.10 — **zostają**, jak we wzorcu |
+| `harness.cjs` w repozytorium | ✅ 29.10 — **tak**, `npm run check-pdf` |
 | Adresat na ofercie Angebot | ✅ 29.10 — **pola klienta, tak jak we Franchise** (wzorzec ich nie ma, PO chce) |
 | Stare drukowanie w Angebot | ✅ 29.10 — **nowy przycisk je zastępuje**, nie zostaje jako zapas |
 | Rabat kwotowy | Brak — tylko prowizja |
@@ -389,10 +392,7 @@ do PO do zatwierdzenia w kroku 7.6.
 1. **Wdrożenie produkcyjne** — kiedy i czy. Produkcja stoi na `main`,
    na SQLite, nietknięta, ze **starym cennikiem** (2 700 / 3 100 / 3 600 /
    3 900 €). Konsultanci wystawiają dziś oferty po starych cenach.
-2. **Czy `harness.cjs` ma trafić do repozytorium.** Skrypt renderuje PDF
-   bez bazy i bez logowania; dziś pisany jest od nowa w każdej sesji, bo
-   nie ma go w repozytorium. Dopisanie to kilkadziesiąt linii kodu
-   testowego obok aplikacji.
+
 
 ## Do zrobienia niezależnie od etapów
 
@@ -479,9 +479,9 @@ Trzy moduły: Angebot, Kreator CV, franczyzowy generator ofert.
   przeglądarce `beforePrint()` liczy wysokość, gdy zakładka jest jeszcze
   ukryta (`offsetHeight === 0`), więc jego automatyczne skalowanie nigdy
   się nie włącza — to martwy kod, znika razem z krokiem 7.5.
-- **`harness.cjs` nie leży w repozytorium** — powstaje od nowa w każdej
-  sesji. Do decyzji PO, czy go dopisać (sekcja „Wymaga decyzji", punkt 2).
-- **Test renderu bez bazy i bez logowania:** `harness.cjs` — mały serwer
+- **Test renderu bez bazy i bez logowania:** `npm run check-pdf`
+  (`harness.cjs`, decyzja PO z 29.10 — skrypt leży w repozytorium).
+  Mały serwer
   statyczny na plikach repozytorium, Playwright otwiera `index.html`,
   ustawia pola `fr-*`, woła `frRecalc()` i `frBuildPdfDoc()`, oddaje
   `#fr-pdf-doc.innerHTML`, a to idzie do `pdf-renderer.renderOffer()`.

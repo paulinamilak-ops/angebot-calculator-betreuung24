@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "check-html": "node -e \"const fs=require('fs');const html=fs.readFileSync('index.html','utf8');const s=html.match(/<script[^>]*>([\\s\\S]*?)<\\/script>/g);s.forEach((x,i)=>{try{new Function(x.replace(/<\\/?script[^>]*>/g,''));console.log('Script',i+1,'OK');}catch(e){console.log('Script',i+1,'ERROR:',e.message);process.exitCode=1;}});\"",
-    "check-js": "node --check server.js && node --check db.js && node --check create-admin.js && node --check pdf-renderer.js"
+    "check-js": "node --check server.js && node --check db.js && node --check create-admin.js && node --check pdf-renderer.js",
+    "check-pdf": "node harness.cjs ."
   },
   "engines": {
     "node": ">=20"

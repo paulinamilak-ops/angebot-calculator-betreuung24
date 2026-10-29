@@ -20,3 +20,6 @@ cv-data/
 
 # Lokalne zrzuty i pliki robocze, nie naleza do repozytorium
 Claude outputs/
+
+# wyniki renderu testowego (harness.cjs)
+pdf-test/
