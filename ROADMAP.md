@@ -1,7 +1,7 @@
 # ROADMAP — moduł franczyzowy Betreuung 24
 
 Stan na **29.10.2026** · gałąź `feature/franchise-calculator`
-Ostatni commit **`__HASH__`** · wypchnięty na GitHub
+Ostatni commit **`307df42`** · wypchnięty na GitHub
 
 | Etap | Zakres | Stan |
 | --- | --- | --- |
@@ -25,8 +25,8 @@ odpowiedni dla modułu.
 
 | Kawałek | Zakres | Stan |
 | --- | --- | --- |
-| 8.1 | Baza i API cenników | ✅ `__HASH__` |
-| 8.2 | Zakładka „Preislisten" w panelu admina | ✅ `__HASH__` |
+| 8.1 | Baza i API cenników | ✅ `307df42` |
+| 8.2 | Zakładka „Preislisten" w panelu admina | ✅ `307df42` |
 | 8.3 | Generatory biorą cennik z bazy | ⬜ **następne** |
 
 ### Decyzje PO z 29.10.2026
@@ -37,7 +37,7 @@ odpowiedni dla modułu.
 | Zmiana w czasie | Cenniki z datą obowiązywania; nowy startuje sam w swoim dniu, stare zostają na liście |
 | Kwoty startowe | Oba cenniki zakładane z dzisiejszymi kwotami (2.600/87, 2.900/97, 3.300/110, 3.600/120) |
 
-### Commit `__HASH__` — baza, API i panel (8.1 + 8.2)
+### Commit `307df42` — baza, API i panel (8.1 + 8.2)
 
 - [x] **Tabela `price_lists`** (migracja `005`): rodzaj, nazwa, data
       obowiązywania, kwoty pakietów i dodatków. Para rodzaj + data jest
